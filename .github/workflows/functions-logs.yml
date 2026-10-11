@@ -1,6 +1,10 @@
 name: Journaux des Cloud Functions (diagnostic)
 
 on:
+  push:
+    branches: [claude/new-session-rtyzv8]
+    paths:
+      - '.github/workflows/functions-logs.yml'
   workflow_dispatch:
     inputs:
       functions:
