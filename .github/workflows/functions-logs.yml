@@ -1,0 +1,31 @@
+name: Journaux des Cloud Functions (diagnostic)
+
+on:
+  workflow_dispatch:
+    inputs:
+      functions:
+        description: 'Fonctions à inspecter (séparées par des virgules)'
+        required: false
+        default: 'notifyUserMessage,notifyOrderMessage,notifyNewOrder,notifyOrderAccepted'
+      lines:
+        description: 'Nombre de lignes de log'
+        required: false
+        default: '50'
+
+permissions:
+  contents: read
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Installer Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Authentification Google (compte de service)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Afficher les journaux récents
+        run: firebase functions:log --project baraka-gp --only "${{ inputs.functions }}" -n "${{ inputs.lines }}"
