@@ -43,16 +43,23 @@ jobs:
             const admin = require('firebase-admin');
             admin.initializeApp({ projectId: 'baraka-gp' });
             const db = admin.firestore();
+            const cleanPhone = p => (p || '').replace(/[^0-9]/g, '');
             (async () => {
               const snap = await db.collection('accounts').get();
               console.log('Comptes trouvés :', snap.size);
-              snap.forEach(doc => {
+              let fixed = 0;
+              for (const doc of snap.docs) {
                 const d = doc.data();
+                const computed = cleanPhone(d.phone);
                 console.log('---');
-                console.log('uid:', doc.id);
-                console.log('name:', d.name, '| phoneClean:', d.phoneClean, '| phoneVerified:', d.phoneVerified);
-                console.log('fcmTokens:', (d.fcmTokens || []).length, 'jeton(s)');
-              });
+                console.log('uid:', doc.id, '| name:', d.name, '| phone:', d.phone, '| phoneClean actuel:', d.phoneClean, '| fcmTokens:', (d.fcmTokens || []).length);
+                if (!d.phoneClean && computed) {
+                  await doc.ref.set({ phoneClean: computed }, { merge: true });
+                  console.log('  -> corrigé : phoneClean =', computed);
+                  fixed++;
+                }
+              }
+              console.log('Comptes corrigés :', fixed);
               const msgSnap = await db.collection('messages').get();
               console.log('=== Threads messages ===');
               msgSnap.forEach(doc => {
