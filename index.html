@@ -2220,7 +2220,8 @@ async function openPaymentModal(orderId){
       renderOrders();
       return;
     }
-    document.getElementById('paymentFormBox').innerHTML='<p class="sub" style="text-align:center;color:var(--red);">Impossible de charger le paiement. Fermez et réessayez.</p>';
+    const detail = (e && (e.message || e.code)) || 'erreur inconnue';
+    document.getElementById('paymentFormBox').innerHTML=`<p class="sub" style="text-align:center;color:var(--red);">Impossible de charger le paiement. Fermez et réessayez.<br><span style="font-size:11px;opacity:.7;">${esc(detail)}</span></p>`;
   }
 }
 function closePaymentModal(){
