@@ -32,4 +32,32 @@ jobs:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
       - name: Afficher les journaux récents
+        if: inputs.functions != ''
         run: firebase functions:log --project baraka-gp --only "${{ inputs.functions }}" -n "${{ inputs.lines }}"
+
+      - name: Inspecter Firestore (comptes et jetons push)
+        if: inputs.functions == ''
+        run: |
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            const db = admin.firestore();
+            (async () => {
+              const snap = await db.collection('accounts').get();
+              console.log('Comptes trouvés :', snap.size);
+              snap.forEach(doc => {
+                const d = doc.data();
+                console.log('---');
+                console.log('uid:', doc.id);
+                console.log('name:', d.name, '| phoneClean:', d.phoneClean, '| phoneVerified:', d.phoneVerified);
+                console.log('fcmTokens:', (d.fcmTokens || []).length, 'jeton(s)');
+              });
+              const msgSnap = await db.collection('messages').get();
+              console.log('=== Threads messages ===');
+              msgSnap.forEach(doc => {
+                const d = doc.data();
+                console.log(doc.id, '| name:', d.name, '| thread length:', (d.thread||[]).length, '| last from:', d.thread && d.thread.length ? d.thread[d.thread.length-1].from : null);
+              });
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
