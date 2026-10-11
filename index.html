@@ -1526,15 +1526,16 @@ async function enablePushNotifications(){
   if(!messaging){ dismissPushPrompt(); return; }
   try{
     const perm=await Notification.requestPermission();
-    if(perm!=='granted'){ dismissPushPrompt(); return; }
+    if(perm!=='granted'){ dismissPushPrompt(); showToast("Autorisation refusée, les notifications resteront désactivées"); return; }
     if(!swRegistration){ swRegistration=await navigator.serviceWorker.register('firebase-messaging-sw.js'); }
     const token=await messaging.getToken({vapidKey:VAPID_KEY, serviceWorkerRegistration:swRegistration});
-    if(token && me){
+    if(!token){ dismissPushPrompt(); showToast("Impossible d'activer les notifications sur cet appareil, réessayez"); return; }
+    if(me){
       await withTimeout(db.collection('accounts').doc(me.uid).set({fcmTokens:firebase.firestore.FieldValue.arrayUnion(token)},{merge:true}), 8000);
     }
     dismissPushPrompt();
     showToast("Notifications activées !");
-  }catch(e){ dismissPushPrompt(); }
+  }catch(e){ dismissPushPrompt(); showToast("Erreur lors de l'activation des notifications : "+((e&&e.message)||'réessayez')); }
 }
 
 // ---- SUPPORT MESSAGING ----

@@ -51,13 +51,16 @@ async function findEmailByPhone(phone) {
 // sont retirés du compte au passage.
 async function sendPush(phone, { title, body, url, tag }) {
   const account = await findAccountByPhone(phone);
-  const tokens = account && account.data.fcmTokens;
-  if (!tokens || tokens.length === 0) return;
+  if (!account) { console.log('sendPush: aucun compte trouvé pour', phone); return; }
+  const tokens = account.data.fcmTokens;
+  if (!tokens || tokens.length === 0) { console.log('sendPush: compte trouvé mais aucun fcmToken pour', phone); return; }
   try {
     const response = await admin.messaging().sendEachForMulticast({
       tokens,
       data: { title, body, url: url || APP_URL, tag: tag || '' },
     });
+    console.log(`sendPush: ${response.successCount}/${tokens.length} envoi(s) réussi(s) pour ${phone}`);
+    response.responses.forEach((r) => { if (!r.success) console.log('sendPush erreur:', r.error && r.error.code, r.error && r.error.message); });
     const invalidTokens = [];
     response.responses.forEach((r, i) => {
       if (!r.success && ['messaging/invalid-registration-token', 'messaging/registration-token-not-registered'].includes(r.error && r.error.code)) {
@@ -386,9 +389,10 @@ exports.notifyUserMessage = onDocumentUpdated({ document: 'messages/{phone}', re
   const after = event.data.after.data();
   const beforeThread = before.thread || [];
   const afterThread = after.thread || [];
+  console.log(`notifyUserMessage déclenché pour ${event.params.phone} : ${beforeThread.length} -> ${afterThread.length} messages`);
   if (afterThread.length <= beforeThread.length) return;
   const last = afterThread[afterThread.length - 1];
-  if (!last || last.from !== 'admin') return;
+  if (!last || last.from !== 'admin') { console.log('notifyUserMessage: dernier message pas de l\'admin, ignoré'); return; }
   await sendPush(event.params.phone, {
     title: 'Support Baraka GP',
     body: last.text,
