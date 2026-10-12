@@ -15,6 +15,9 @@ on:
         description: 'Nombre de lignes de log'
         required: false
         default: '50'
+      admin_email:
+        description: 'Email à déclarer admin (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -66,5 +69,22 @@ jobs:
                 const d = doc.data();
                 console.log(doc.id, '| name:', d.name, '| thread length:', (d.thread||[]).length, '| last from:', d.thread && d.thread.length ? d.thread[d.thread.length-1].from : null);
               });
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+
+      - name: Déclarer un compte admin
+        if: inputs.admin_email != ''
+        env:
+          ADMIN_EMAIL: ${{ inputs.admin_email }}
+        run: |
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const user = await admin.auth().getUserByEmail(process.env.ADMIN_EMAIL);
+              console.log('Compte trouvé : uid =', user.uid, '| email =', user.email);
+              await admin.firestore().collection('admins').doc(user.uid).set({ role: 'admin' });
+              console.log('-> Déclaré admin avec succès (collection admins, doc', user.uid + ')');
             })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
           "
