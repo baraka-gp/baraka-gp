@@ -428,7 +428,7 @@
       </div>
       <label>Pays de destination</label>
       <select id="pCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="Arabie Saoudite">🇸🇦 Arabie Saoudite</option><option value="France">🇫🇷 France</option></select>
-      <label>Date de départ</label><input type="date" id="pDate">
+      <label>Date de départ</label><input type="date" id="pDate" required>
       <label>Date et heure d'arrivée estimée</label><input type="datetime-local" id="pArrival">
       <div class="hint">Utilisée pour savoir à partir de quand le destinataire peut confirmer la réception.</div>
       <label>Kg disponibles</label><input type="number" id="pKg" placeholder="Ex. 8" min="1">
@@ -1876,7 +1876,7 @@ function displayResults(country, from, to, sortBy, minKg){
     if(l.type!=='gp') return false;
     if(me && cleanPhone(l.phone)===cleanPhone(me.phone)) return false;
     if(me && orders.some(o=>o.listingId===l.id && cleanPhone(o.clientPhone)===cleanPhone(me.phone) && activeStatuses.includes(o.status))) return false;
-    if(l.date && l.date<todayDateStr()) return false;
+    if(!l.date || l.date<todayDateStr()) return false;
     if(remainingKg(l)<=0) return false;
     if(minKg && remainingKg(l)<minKg) return false;
     if(country && l.country!==country) return false;
@@ -2633,8 +2633,8 @@ async function publishListing(){
   const kg=document.getElementById('pKg').value;
   const ticketFile=document.getElementById('pTicket').files[0];
 
-  if(!name||!phone||!from||!to||!kg||!arrival){ showToast("Merci de remplir tous les champs"); return; }
-  if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
+  if(!name||!phone||!from||!to||!kg||!date||!arrival){ showToast("Merci de remplir tous les champs"); return; }
+  if(date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
   if(date && arrival.slice(0,10)<date){ showToast("La date d'arrivée ne peut pas être avant la date de départ"); return; }
   const overlap=findOverlappingTrip(phone, date, arrival, null);
   if(overlap){ showToast(`Vous avez déjà un trajet du ${fmtDate(overlap.date)} au ${fmtDate(overlap.arrivalDateTime?overlap.arrivalDateTime.slice(0,10):overlap.date)} (${overlap.from} → ${overlap.to}). Un voyageur ne peut pas être sur deux trajets en même temps.`); return; }
