@@ -172,6 +172,8 @@
   .modal .price-big{font-family:'Fraunces',serif;font-size:24px;color:var(--accent);margin-bottom:2px;}
   .modal .price-note{font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
 
+  #authSignupWizard{position:fixed;inset:0;background:var(--panel);z-index:51;display:flex;flex-direction:column;padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));overflow-y:auto;text-align:left;}
+  .wizard-body{flex:1;}
   .wizard-back{background:none;border:none;color:var(--ink-soft);cursor:pointer;padding:0;margin-bottom:14px;display:flex;align-items:center;}
   .wizard-back .icon{width:22px;height:22px;}
   .wizard-icon{width:52px;height:52px;border-radius:14px;background:var(--green-pale);color:var(--green-pale-ink);display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
@@ -650,64 +652,58 @@
     </p>
   </div>
 
-  <div class="modal" id="authSignupWizard">
-    <button type="button" class="wizard-back" id="wizardBackBtn" onclick="wizardPrev()" style="visibility:hidden;"><svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+  <div id="authSignupWizard">
+    <div class="wizard-body">
+      <button type="button" class="wizard-back" id="wizardBackBtn" onclick="wizardPrev()" style="visibility:hidden;"><svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
 
-    <div class="wizard-step active" id="wizStep1">
-      <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-      <div class="wizard-progress">Étape 1 sur 6</div>
-      <div class="wizard-title">Quel est votre prénom ?</div>
-      <p class="wizard-desc">Pour qu'on sache comment vous appeler.</p>
-      <input type="text" id="authName" placeholder="Votre prénom">
-    </div>
-
-    <div class="wizard-step" id="wizStep2">
-      <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L7 20"/></svg></div>
-      <div class="wizard-progress">Étape 2 sur 6</div>
-      <div class="wizard-title">Ajoutez une photo de profil</div>
-      <p class="wizard-desc">Facultatif — vous pourrez l'ajouter plus tard si vous préférez.</p>
-      <input type="file" id="authAvatar" accept="image/*">
-    </div>
-
-    <div class="wizard-step" id="wizStep3">
-      <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
-      <div class="wizard-progress">Étape 3 sur 6</div>
-      <div class="wizard-title">Entrez votre numéro de téléphone</div>
-      <p class="wizard-desc">Nous vous enverrons un code par SMS pour le vérifier.</p>
-      <div style="display:flex;gap:8px;">
-        <select id="authCountryCode" style="width:auto;flex:0 0 108px;">
-          <option value="+33">🇫🇷 +33</option>
-          <option value="+222">🇲🇷 +222</option>
-          <option value="+221">🇸🇳 +221</option>
-          <option value="+223">🇲🇱 +223</option>
-          <option value="+20">🇪🇬 +20</option>
-          <option value="+966">🇸🇦 +966</option>
-        </select>
-        <input type="tel" id="authPhone" placeholder="Votre numéro" style="flex:1;">
+      <div class="wizard-step active" id="wizStep1">
+        <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="wizard-progress">Étape 1 sur 4</div>
+        <div class="wizard-title">Quel est votre prénom ?</div>
+        <p class="wizard-desc">Pour qu'on sache comment vous appeler.</p>
+        <input type="text" id="authName" placeholder="Votre prénom">
       </div>
-    </div>
 
-    <div class="wizard-step" id="wizStep4">
-      <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
-      <div class="wizard-progress">Étape 4 sur 6</div>
-      <div class="wizard-title">Quel est votre email ?</div>
-      <p class="wizard-desc">Il vous servira à vous connecter.</p>
-      <input type="email" id="authEmailSignup" placeholder="Votre email" autocomplete="username">
-    </div>
-
-    <div class="wizard-step" id="wizStep5">
-      <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-      <div class="wizard-progress">Étape 5 sur 6</div>
-      <div class="wizard-title">Créez votre mot de passe</div>
-      <p class="wizard-desc">Au moins 6 caractères.</p>
-      <div class="password-field">
-        <input type="password" id="authPasswordSignup" placeholder="Mot de passe" autocomplete="new-password">
-        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPasswordSignup', this)"><svg class="icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <div class="wizard-step" id="wizStep2">
+        <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+        <div class="wizard-progress">Étape 2 sur 4</div>
+        <div class="wizard-title">Entrez votre numéro de téléphone</div>
+        <p class="wizard-desc">Nous vous enverrons un code par SMS pour le vérifier.</p>
+        <div style="display:flex;gap:8px;">
+          <select id="authCountryCode" style="width:auto;flex:0 0 108px;">
+            <option value="+33">🇫🇷 +33</option>
+            <option value="+222">🇲🇷 +222</option>
+            <option value="+221">🇸🇳 +221</option>
+            <option value="+223">🇲🇱 +223</option>
+            <option value="+20">🇪🇬 +20</option>
+            <option value="+966">🇸🇦 +966</option>
+          </select>
+          <input type="tel" id="authPhone" placeholder="Votre numéro" style="flex:1;">
+        </div>
       </div>
-      <label id="authLegalNote" class="check-line" style="margin-top:14px;font-size:11.5px;color:var(--ink-soft);">
-        <input type="checkbox" id="authLegalCheck">
-        J'accepte les <a href="cgu.html" target="_blank" style="color:inherit;">CGU</a> et la <a href="confidentialite.html" target="_blank" style="color:inherit;">politique de confidentialité</a>.
-      </label>
+
+      <div class="wizard-step" id="wizStep3">
+        <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+        <div class="wizard-progress">Étape 3 sur 4</div>
+        <div class="wizard-title">Quel est votre email ?</div>
+        <p class="wizard-desc">Il vous servira à vous connecter.</p>
+        <input type="email" id="authEmailSignup" placeholder="Votre email" autocomplete="username">
+      </div>
+
+      <div class="wizard-step" id="wizStep4">
+        <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <div class="wizard-progress">Étape 4 sur 4</div>
+        <div class="wizard-title">Créez votre mot de passe</div>
+        <p class="wizard-desc">Au moins 6 caractères.</p>
+        <div class="password-field">
+          <input type="password" id="authPasswordSignup" placeholder="Mot de passe" autocomplete="new-password">
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPasswordSignup', this)"><svg class="icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+        <label id="authLegalNote" class="check-line" style="margin-top:14px;font-size:11.5px;color:var(--ink-soft);">
+          <input type="checkbox" id="authLegalCheck">
+          J'accepte les <a href="cgu.html" target="_blank" style="color:inherit;">CGU</a> et la <a href="confidentialite.html" target="_blank" style="color:inherit;">politique de confidentialité</a>.
+        </label>
+      </div>
     </div>
 
     <button class="btn" id="wizardNextBtn" onclick="wizardNext()">Continuer</button>
@@ -967,7 +963,7 @@ function switchAuthMode(){
 
 // ---- INSCRIPTION PAS-À-PAS (une question par écran) ----
 let wizardStep=1;
-const WIZARD_TOTAL_STEPS=5;
+const WIZARD_TOTAL_STEPS=4;
 function wizardShowStep(n){
   wizardStep=n;
   for(let i=1;i<=WIZARD_TOTAL_STEPS;i++){
@@ -984,10 +980,10 @@ function wizardNext(){
   if(wizardStep===1 && !document.getElementById('authName').value.trim()){
     showToast("Merci d'indiquer votre prénom"); return;
   }
-  if(wizardStep===3 && !document.getElementById('authPhone').value.trim()){
+  if(wizardStep===2 && !document.getElementById('authPhone').value.trim()){
     showToast("Merci d'indiquer votre numéro de téléphone"); return;
   }
-  if(wizardStep===4 && !document.getElementById('authEmailSignup').value.trim()){
+  if(wizardStep===3 && !document.getElementById('authEmailSignup').value.trim()){
     showToast("Merci d'indiquer votre email"); return;
   }
   wizardShowStep(wizardStep+1);
@@ -1219,10 +1215,7 @@ async function authSubmit(){
           showToast("Ce numéro a été bloqué. Contactez le support si vous pensez qu'il s'agit d'une erreur.");
           return;
         }
-        const avatarFile=document.getElementById('authAvatar').files[0];
-        let avatar=null;
-        if(avatarFile){ try{ avatar=await compressImage(avatarFile); }catch(e){} }
-        let acc={name,phone,email,avatar,phoneE164,phoneVerified:false,phoneClean:cleanPhone(phone),createdAt:Date.now()};
+        let acc={name,phone,email,avatar:null,phoneE164,phoneVerified:false,phoneClean:cleanPhone(phone),createdAt:Date.now()};
         try{
           const snap=await withTimeout(db.collection('accounts').doc(uid).get(), 8000);
           if(snap.exists) acc=snap.data();
@@ -1250,6 +1243,7 @@ async function authSubmit(){
 }
 async function authSignOut(){
   stopPolling();
+  try{ localStorage.removeItem('baraka-gp-me'); }catch(e){}
   try{ await auth.signOut(); }catch(e){}
 }
 async function deleteMyAccount(){
@@ -1268,6 +1262,19 @@ async function deleteMyAccount(){
   try{ await auth.signOut(); }catch(e){}
   location.reload();
 }
+// Restauration optimiste de la session depuis le cache local : sans ça,
+// l'app reste sur l'écran de connexion jusqu'à ce que le premier callback
+// onAuthStateChanged de Firebase arrive, ce qui peut être lent ou tarder
+// (notamment sur Safari iOS) et donner l'impression qu'il faut rafraîchir
+// la page pour qu'elle "comprenne" qu'on est déjà connecté.
+try{
+  const params=new URLSearchParams(location.search);
+  if(!params.get('receive')){
+    const cached=JSON.parse(localStorage.getItem('baraka-gp-me')||'null');
+    if(cached && cached.uid && cached.name && cached.phone) completeLogin(cached.uid, cached);
+  }
+}catch(e){}
+
 auth.onAuthStateChanged(async (user)=>{
   if(receiveMode) return; // page de confirmation de réception : ne pas afficher l'app normale
   if(authFlowInProgress) return; // authSubmit() gère déjà completeLogin() dans ce cas
@@ -1297,12 +1304,11 @@ auth.onAuthStateChanged(async (user)=>{
     await completeLogin(user.uid, acc);
   }else{
     me=null;
+    try{ localStorage.removeItem('baraka-gp-me'); }catch(e){}
     updatePointsHeader();
     updateUserHeader();
     updateNotifBadge();
     ['authName','authPhone','authEmail','authPassword','authEmailSignup','authPasswordSignup'].forEach(id=>{ document.getElementById(id).value=''; });
-    const avatarInput=document.getElementById('authAvatar');
-    if(avatarInput) avatarInput.value='';
     if(authMode==='signup') wizardShowStep(1);
     document.getElementById('authGate').classList.add('show');
   }
