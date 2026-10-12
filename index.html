@@ -1111,19 +1111,28 @@ async function startPhoneVerification(uid, acc){
   document.getElementById('phoneVerifyOverlay').classList.add('show');
   await sendPhoneCode();
 }
+function resetRecaptcha(){
+  // Remplace le conteneur par un nœud DOM tout neuf (pas juste .clear()) :
+  // withTimeout() n'annule pas la requête Firebase sous-jacente, donc un
+  // envoi précédent resté bloqué peut encore essayer de rendre son widget
+  // dans ce conteneur après coup et entrer en collision avec la tentative
+  // suivante ("reCAPTCHA has already been rendered in this element").
+  try{ if(recaptchaVerifier) recaptchaVerifier.clear(); }catch(e){}
+  recaptchaVerifier=null;
+  const old=document.getElementById('recaptcha-container');
+  if(old){
+    const fresh=document.createElement('div');
+    fresh.id='recaptcha-container';
+    old.parentNode.replaceChild(fresh, old);
+  }
+}
 async function sendPhoneCode(){
   try{
     if(!recaptchaVerifier){ recaptchaVerifier=new firebase.auth.RecaptchaVerifier('recaptcha-container', {size:'invisible'}); }
     phoneConfirmationResult=await withTimeout(auth.currentUser.linkWithPhoneNumber(pendingSignupAcc.phoneE164, recaptchaVerifier), 20000);
     showToast("Code envoyé par SMS !");
   }catch(e){
-    // On réinitialise systématiquement le widget reCAPTCHA après un échec :
-    // le réutiliser tel quel après un blocage ou une expiration referait
-    // planter la tentative suivante de la même façon, sans qu'on s'en
-    // aperçoive (aucun message ne s'affichait avant ce correctif dans ce
-    // cas précis — l'appel restait bloqué indéfiniment).
-    try{ recaptchaVerifier.clear(); }catch(e2){}
-    recaptchaVerifier=null;
+    resetRecaptcha();
     if(e.message==='timeout') showToast("L'envoi du SMS prend trop de temps (vérification anti-robot bloquée ?), réessayez avec « Renvoyer le code »");
     else if(e.code==='auth/credential-already-in-use') showToast("Ce numéro est déjà vérifié sur un autre compte");
     else showToast("Impossible d'envoyer le SMS : "+(e.code||e.message||'erreur inconnue'));
@@ -1169,6 +1178,7 @@ async function cancelPhoneVerification(){
   try{ await auth.currentUser.delete(); }catch(e){ try{ await auth.signOut(); }catch(e2){} }
   pendingSignupUid=null; pendingSignupAcc=null; phoneConfirmationResult=null;
   authFlowInProgress=false;
+  resetRecaptcha();
   document.getElementById('authGate').classList.add('show');
 }
 async function authSubmit(){
