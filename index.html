@@ -1114,10 +1114,18 @@ async function startPhoneVerification(uid, acc){
 async function sendPhoneCode(){
   try{
     if(!recaptchaVerifier){ recaptchaVerifier=new firebase.auth.RecaptchaVerifier('recaptcha-container', {size:'invisible'}); }
-    phoneConfirmationResult=await auth.currentUser.linkWithPhoneNumber(pendingSignupAcc.phoneE164, recaptchaVerifier);
+    phoneConfirmationResult=await withTimeout(auth.currentUser.linkWithPhoneNumber(pendingSignupAcc.phoneE164, recaptchaVerifier), 20000);
     showToast("Code envoyé par SMS !");
   }catch(e){
-    showToast(e.code==='auth/credential-already-in-use' ? "Ce numéro est déjà vérifié sur un autre compte" : "Impossible d'envoyer le SMS, réessayez");
+    // On réinitialise systématiquement le widget reCAPTCHA après un échec :
+    // le réutiliser tel quel après un blocage ou une expiration referait
+    // planter la tentative suivante de la même façon, sans qu'on s'en
+    // aperçoive (aucun message ne s'affichait avant ce correctif dans ce
+    // cas précis — l'appel restait bloqué indéfiniment).
+    try{ recaptchaVerifier.clear(); }catch(e2){}
+    recaptchaVerifier=null;
+    if(e.message==='timeout') showToast("L'envoi du SMS prend trop de temps (vérification anti-robot bloquée ?), réessayez avec « Renvoyer le code »");
+    else showToast(e.code==='auth/credential-already-in-use' ? "Ce numéro est déjà vérifié sur un autre compte" : "Impossible d'envoyer le SMS, réessayez");
   }
 }
 async function resendPhoneCode(){
