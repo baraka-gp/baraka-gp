@@ -172,7 +172,9 @@
   .modal .price-big{font-family:'Fraunces',serif;font-size:24px;color:var(--accent);margin-bottom:2px;}
   .modal .price-note{font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
 
-  #authSignupWizard{position:fixed;inset:0;background:var(--panel);z-index:51;display:flex;flex-direction:column;padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));overflow-y:auto;text-align:left;}
+  #authSignupWizard, #payoutSetupGate{position:fixed;inset:0;background:var(--panel);z-index:51;display:flex;flex-direction:column;padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));overflow-y:auto;text-align:left;}
+  #payoutSetupGate{display:none;}
+  #payoutSetupGate.show{display:flex;}
   .wizard-body{flex:1;}
   .wizard-back{background:none;border:none;color:var(--ink-soft);cursor:pointer;padding:0;margin-bottom:14px;display:flex;align-items:center;}
   .wizard-back .icon{width:22px;height:22px;}
@@ -732,6 +734,17 @@
 </div>
 <div id="recaptcha-container"></div>
 
+<!-- CONFIGURATION DU COMPTE DE PAIEMENT (proposée une fois après l'inscription) -->
+<div id="payoutSetupGate">
+  <div class="wizard-body">
+    <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+    <div class="wizard-title">Recevez vos paiements</div>
+    <p class="wizard-desc">Si vous transportez un colis un jour, vous aurez besoin d'un compte de paiement (IBAN) pour être payé. Vous pouvez le configurer maintenant ou plus tard, depuis « Mon solde ».</p>
+  </div>
+  <button class="btn gold" onclick="document.getElementById('payoutSetupGate').classList.remove('show'); setupPayoutAccount()">Configurer maintenant</button>
+  <button class="btn ghost" style="margin-top:10px;" onclick="document.getElementById('payoutSetupGate').classList.remove('show')">Plus tard</button>
+</div>
+
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottomNav">
   <div class="bn-item active" id="bnSearch" onclick="switchTab('search')"><svg class="icon bn-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Chercher</div>
@@ -948,6 +961,7 @@ async function suggestMeetingPoint(lat1,lng1,lat2,lng2){
 // ---- IDENTITY (compte Firebase Authentication, obligatoire dès l'arrivée) ----
 let authMode='signup';
 let authFlowInProgress=false;
+let justSignedUp=false;
 function togglePasswordVisibility(id, btn){
   const input=document.getElementById(id);
   if(input.type==='password'){ input.type='text'; btn.innerHTML=ICON_EYE_OFF; }
@@ -1034,6 +1048,7 @@ async function completeLogin(uid, acc){
   initPushSupport();
   renderResults();
   startPolling();
+  if(justSignedUp){ justSignedUp=false; document.getElementById('payoutSetupGate').classList.add('show'); }
 }
 function setBadge(id, count){
   const el=document.getElementById(id);
@@ -1164,6 +1179,7 @@ async function confirmPhoneCode(){
     document.getElementById('phoneVerifyOverlay').classList.remove('show');
     pendingSignupUid=null; pendingSignupAcc=null; phoneConfirmationResult=null;
     authFlowInProgress=true;
+    justSignedUp=true;
     try{ await completeLogin(uid, acc); } finally { authFlowInProgress=false; }
   }catch(e){
     showToast(e.code==='auth/invalid-verification-code' ? "Code incorrect, réessayez" : "Erreur de vérification, réessayez");
@@ -1244,6 +1260,7 @@ async function authSubmit(){
           // Compte déjà vérifié lors d'une tentative précédente interrompue
           // juste après (pas besoin de renvoyer un SMS).
           authFlowInProgress=false;
+          justSignedUp=true;
           await completeLogin(uid, acc);
         }else{
           await startPhoneVerification(uid, acc);
