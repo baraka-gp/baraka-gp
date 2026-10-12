@@ -409,6 +409,12 @@
       <div id="docsSection">
         <label>Photo de profil</label><input type="file" id="pAvatar" accept="image/*">
         <div class="hint">Visible sur vos annonces, inspire confiance.</div>
+        <label>Type de document</label>
+        <select id="pIdType">
+          <option value="Carte d'identité">Carte d'identité</option>
+          <option value="Passeport">Passeport</option>
+          <option value="Titre de séjour">Titre de séjour</option>
+        </select>
         <label>Pièce d'identité</label><input type="file" id="pId" accept="image/*">
         <div class="hint">Une seule fois.</div>
       </div>
@@ -862,7 +868,7 @@ async function saveProfiles(){ try{ const batch=db.batch(); Object.keys(profiles
 // lisible seulement par l'admin (voir firestore.rules) — contrairement au
 // reste du profil (nom, avatar, note), elle ne doit jamais être téléchargée
 // dans le navigateur d'un autre utilisateur.
-async function saveIdPhoto(phone, idPhoto){ try{ await db.collection('profilesPrivate').doc(phone).set({idPhoto}); }catch(e){} }
+async function saveIdPhoto(phone, idPhoto, idType){ try{ await db.collection('profilesPrivate').doc(phone).set({idPhoto, idType: idType||null}); }catch(e){} }
 async function saveAlerts(){ try{ const batch=db.batch(); alerts.forEach(a=>batch.set(db.collection('alerts').doc(String(a.id)), a)); await batch.commit(); }catch(e){} }
 async function saveMessages(){ try{ const batch=db.batch(); Object.keys(messages).forEach(k=>batch.set(db.collection('messages').doc(k), messages[k])); await batch.commit(); }catch(e){} }
 async function saveOrders(){ try{ const batch=db.batch(); orders.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }catch(e){} }
@@ -2532,6 +2538,7 @@ async function publishListing(){
   const hasProfile=!!profiles[phone];
   if(!hasProfile){
     const idFile=document.getElementById('pId').files[0];
+    const idType=document.getElementById('pIdType').value;
     const avatarFile=document.getElementById('pAvatar').files[0];
     if(!idFile){ showToast("Merci d'ajouter une pièce d'identité"); return; }
     showToast("Envoi en cours...");
@@ -2542,7 +2549,7 @@ async function publishListing(){
     }
     profiles[phone]={name,phone:phoneRaw,avatar,verified:false,createdAt:Date.now(),ratingSum:0,ratingCount:0};
     await saveProfiles();
-    await saveIdPhoto(phone, idPhoto);
+    await saveIdPhoto(phone, idPhoto, idType);
   }
   if(!document.getElementById('pAcceptAll').checked){ showToast("Merci de cocher la case d'engagement"); return; }
 

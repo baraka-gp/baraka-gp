@@ -431,7 +431,7 @@ function renderAdminProfiles(){
           </p>`).join('')}
       ` : ''}
       ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
-      <div class="name-check">Pièce d'identité</div>
+      <div class="name-check">Pièce d'identité${(profilesPrivate[phone]||{}).idType ? ` — ${esc(profilesPrivate[phone].idType)}` : ''}</div>
       ${(()=>{ const idPhoto=(profilesPrivate[phone]||{}).idPhoto; return idPhoto&&idPhoto.type==='image' ? `<img src="${idPhoto.data}">` : `<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(idPhoto?idPhoto.name:'non fourni')}</p>`; })()}
       <div class="admin-actions">
         <button class="btn-approve" onclick="setProfileVerified('${phone}',true)">${p.verified?'✅ Vérifié':'Approuver'}</button>
