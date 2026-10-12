@@ -2303,28 +2303,39 @@ async function openPaymentModal(orderId){
     const isDark = pref==='dark' || (pref!=='light' && systemDark);
     const cs=getComputedStyle(document.documentElement);
     const v=name=>cs.getPropertyValue(name).trim();
-    paymentElements=stripe.elements({
-      clientSecret,
-      fonts:[{cssSrc:'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'}],
-      appearance:{
-        theme: isDark ? 'night' : 'stripe',
-        variables:{
-          colorPrimary: v('--accent'), colorBackground: v('--input-bg'), colorText: v('--ink'),
-          colorTextSecondary: v('--ink-soft'), colorTextPlaceholder: v('--ink-soft'), colorDanger: v('--red'),
-          fontFamily: "'Inter', sans-serif", fontSizeBase: '15px', spacingUnit: '4px', borderRadius: '10px',
-        },
-        rules:{
-          '.Input':{ border:`1px solid ${v('--line')}`, boxShadow:'none' },
-          '.Input:focus':{ border:`1px solid ${v('--accent')}`, boxShadow:'none' },
-          '.Label':{ fontWeight:'600', fontSize:'12.5px', textTransform:'uppercase', letterSpacing:'.3px' },
-          '.Tab':{ border:`1px solid ${v('--line')}`, borderRadius:'10px' },
-          '.Tab:hover':{ border:`1px solid ${v('--accent')}` },
-          '.Tab--selected':{ border:`1px solid ${v('--accent')}`, backgroundColor:v('--green-pale') },
-        }
+    const appearance={
+      theme: isDark ? 'night' : 'stripe',
+      variables:{
+        colorPrimary: v('--accent'), colorBackground: v('--input-bg'), colorText: v('--ink'),
+        colorTextSecondary: v('--ink-soft'), colorTextPlaceholder: v('--ink-soft'), colorDanger: v('--red'),
+        fontFamily: "'Inter', sans-serif", fontSizeBase: '15px', spacingUnit: '4px', borderRadius: '10px',
+      },
+      rules:{
+        '.Input':{ border:`1px solid ${v('--line')}`, boxShadow:'none' },
+        '.Input:focus':{ border:`1px solid ${v('--accent')}`, boxShadow:'none' },
+        '.Label':{ fontWeight:'600', fontSize:'12.5px', textTransform:'uppercase', letterSpacing:'.3px' },
+        '.Tab':{ border:`1px solid ${v('--line')}`, borderRadius:'10px' },
+        '.Tab:hover':{ border:`1px solid ${v('--accent')}` },
+        '.Tab--selected':{ border:`1px solid ${v('--accent')}`, backgroundColor:v('--green-pale') },
       }
-    });
-    document.getElementById('paymentFormBox').innerHTML='<div id="paymentElementMount"></div>';
-    paymentElements.create('payment').mount('#paymentElementMount');
+    };
+    const fonts=[{cssSrc:'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'}];
+    try{
+      paymentElements=stripe.elements({ clientSecret, fonts, appearance });
+      document.getElementById('paymentFormBox').innerHTML='<div id="paymentElementMount"></div>';
+      paymentElements.create('payment').mount('#paymentElementMount');
+    }catch(e){
+      // Stripe tente d'enregistrer un service worker interne pour sa fonction
+      // "Link" (paiement en un clic) et se trompe parfois de chemin sur un
+      // site hébergé dans un sous-dossier (ex. GitHub Pages) : ça ne devrait
+      // pas empêcher le paiement par carte classique. On réessaie une fois
+      // avant d'abandonner, comme le suggérait déjà le message affiché ici.
+      if(!(e && /service.worker|messaging\//i.test(e.message||e.code||''))) throw e;
+      await new Promise(r=>setTimeout(r,500));
+      paymentElements=stripe.elements({ clientSecret, fonts, appearance });
+      document.getElementById('paymentFormBox').innerHTML='<div id="paymentElementMount"></div>';
+      paymentElements.create('payment').mount('#paymentElementMount');
+    }
     document.getElementById('paymentSubmitBtn').textContent=`Payer ${o.priceTotal.toFixed(2)}€`;
     document.getElementById('paymentSubmitBtn').disabled=false;
   }catch(e){
