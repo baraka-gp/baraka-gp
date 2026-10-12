@@ -18,6 +18,9 @@ on:
       admin_email:
         description: 'Email à déclarer admin (laisser vide pour ne rien faire)'
         required: false
+      fetch_apple_pay_file:
+        description: 'Récupérer le fichier de vérification de domaine Apple Pay (oui/non)'
+        required: false
 
 permissions:
   contents: read
@@ -88,3 +91,17 @@ jobs:
               console.log('-> Déclaré admin avec succès (collection admins, doc', user.uid + ')');
             })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
           "
+
+      - name: Récupérer le fichier de vérification Apple Pay (Stripe)
+        if: inputs.fetch_apple_pay_file != ''
+        run: |
+          set -e
+          URL="https://stripe.com/files/apple-pay/apple-developer-merchantid-domain-association"
+          echo "Téléchargement depuis $URL"
+          HTTP_CODE=$(curl -sS -w "%{http_code}" -o /tmp/apple-pay-file -L "$URL")
+          echo "Code HTTP : $HTTP_CODE"
+          echo "Taille : $(wc -c < /tmp/apple-pay-file) octets"
+          echo "--- Début du contenu encodé en base64 ---"
+          base64 -w0 /tmp/apple-pay-file
+          echo ""
+          echo "--- Fin du contenu encodé en base64 ---"
