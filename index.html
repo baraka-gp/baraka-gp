@@ -1125,7 +1125,8 @@ async function sendPhoneCode(){
     try{ recaptchaVerifier.clear(); }catch(e2){}
     recaptchaVerifier=null;
     if(e.message==='timeout') showToast("L'envoi du SMS prend trop de temps (vérification anti-robot bloquée ?), réessayez avec « Renvoyer le code »");
-    else showToast(e.code==='auth/credential-already-in-use' ? "Ce numéro est déjà vérifié sur un autre compte" : "Impossible d'envoyer le SMS, réessayez");
+    else if(e.code==='auth/credential-already-in-use') showToast("Ce numéro est déjà vérifié sur un autre compte");
+    else showToast("Impossible d'envoyer le SMS : "+(e.code||e.message||'erreur inconnue'));
   }
 }
 async function resendPhoneCode(){
