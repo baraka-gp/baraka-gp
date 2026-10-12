@@ -2463,7 +2463,7 @@ async function setupPayoutAccount(){
     const result=await callCloudFn('createConnectOnboardingLink', {phone: me.phone, origin});
     location.href=result.data.url;
   }catch(e){
-    showToast("Impossible d'ouvrir la configuration : "+((e&&(e.code||e.message))||'erreur inconnue'));
+    showToast("Impossible d'ouvrir la configuration : "+((e&&(e.message||e.code))||'erreur inconnue'));
   }
 }
 async function confirmPickup(orderId){
