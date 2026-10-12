@@ -21,6 +21,9 @@ on:
       fetch_apple_pay_file:
         description: 'Récupérer le fichier de vérification de domaine Apple Pay (oui/non)'
         required: false
+      register_apple_pay_domain:
+        description: 'Domaine à déclarer pour Apple Pay auprès de Stripe (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -102,4 +105,16 @@ jobs:
           echo "Code HTTP : $HTTP_CODE"
           echo "Taille : $(wc -c < /tmp/apple-pay-file) octets"
           head -c 300 /tmp/apple-pay-file
+          echo ""
+
+      - name: Déclarer le domaine Apple Pay auprès de Stripe
+        if: inputs.register_apple_pay_domain != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          DOMAIN: ${{ inputs.register_apple_pay_domain }}
+        run: |
+          set -e
+          curl -sS https://api.stripe.com/v1/apple_pay/domains \
+            -u "$STRIPE_SECRET_KEY:" \
+            -d "domain_name=$DOMAIN"
           echo ""
