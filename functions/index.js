@@ -100,20 +100,13 @@ async function sendEmail(to, subject, html) {
 const EMAIL_SECRETS = [gmailUser, gmailAppPassword];
 const APP_URL = 'https://laminecamara251005-wq.github.io/baraka-gp/index.html';
 
-// Crée (si besoin) un compte Stripe Express pour un voyageur, et renvoie un
-// lien d'inscription Stripe à ouvrir dans son navigateur pour qu'il
-// complète sa fiche (identité, IBAN) — nécessaire pour pouvoir le reverser
-// plus tard.
-exports.createConnectOnboardingLink = onCall({ secrets: [stripeSecretKey], region: REGION }, async (request) => {
-  if (!request.auth) throw new HttpsError('unauthenticated', 'Connexion requise');
-  const phone = cleanPhone(request.data && request.data.phone);
-  if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
-
-  const stripe = getStripe();
+// Crée (si besoin) le compte Stripe Express d'un voyageur et renvoie son id
+// — partagé par les deux façons de compléter sa fiche (identité, IBAN) :
+// lien Stripe classique (redirection) ou composant intégré (sur place).
+async function getOrCreateExpressAccount(stripe, phone) {
   const profileRef = db.collection('profiles').doc(phone);
   const profileSnap = await profileRef.get();
   let accountId = profileSnap.exists ? profileSnap.data().stripeAccountId : null;
-
   if (!accountId) {
     const account = await stripe.accounts.create({
       type: 'express',
@@ -124,6 +117,18 @@ exports.createConnectOnboardingLink = onCall({ secrets: [stripeSecretKey], regio
     accountId = account.id;
     await profileRef.set({ stripeAccountId: accountId }, { merge: true });
   }
+  return accountId;
+}
+
+// Lien d'inscription Stripe classique (redirection hors de l'appli) — gardé
+// en repli si le composant intégré (createAccountSession) ne se charge pas.
+exports.createConnectOnboardingLink = onCall({ secrets: [stripeSecretKey], region: REGION }, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Connexion requise');
+  const phone = cleanPhone(request.data && request.data.phone);
+  if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
+
+  const stripe = getStripe();
+  const accountId = await getOrCreateExpressAccount(stripe, phone);
 
   const origin = (request.data && request.data.origin) || 'https://laminecamara251005-wq.github.io/baraka-gp';
   const accountLink = await stripe.accountLinks.create({
@@ -134,6 +139,26 @@ exports.createConnectOnboardingLink = onCall({ secrets: [stripeSecretKey], regio
   });
 
   return { url: accountLink.url };
+});
+
+// Jeton pour afficher le formulaire Stripe directement dans la page (composant
+// intégré "account onboarding"), sans rediriger hors de l'appli.
+exports.createAccountSession = onCall({ secrets: [stripeSecretKey], region: REGION }, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Connexion requise');
+  const phone = cleanPhone(request.data && request.data.phone);
+  if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
+
+  const stripe = getStripe();
+  const accountId = await getOrCreateExpressAccount(stripe, phone);
+
+  const accountSession = await stripe.accountSessions.create({
+    account: accountId,
+    components: {
+      account_onboarding: { enabled: true },
+    },
+  });
+
+  return { clientSecret: accountSession.client_secret };
 });
 
 // Crée un PaymentIntent pour une commande : l'argent est prélevé et retenu

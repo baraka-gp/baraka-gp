@@ -739,10 +739,10 @@
   <div class="wizard-body">
     <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
     <div class="wizard-title">Recevez vos paiements</div>
-    <p class="wizard-desc">Si vous transportez un colis un jour, vous aurez besoin d'un compte de paiement (IBAN) pour être payé. Vous pouvez le configurer maintenant ou plus tard, depuis « Mon solde ».</p>
+    <p class="wizard-desc">Si vous transportez un colis un jour, remplissez vos informations de paiement (IBAN) ci-dessous pour pouvoir être payé. Vous pouvez aussi passer cette étape et le faire plus tard, depuis « Mon solde ».</p>
+    <div id="payoutOnboardingMount"><div class="search-spinner" style="margin:24px auto;"></div></div>
   </div>
-  <button class="btn gold" onclick="document.getElementById('payoutSetupGate').classList.remove('show'); setupPayoutAccount()">Configurer maintenant</button>
-  <button class="btn ghost" style="margin-top:10px;" onclick="document.getElementById('payoutSetupGate').classList.remove('show')">Plus tard</button>
+  <button class="btn ghost" onclick="document.getElementById('payoutSetupGate').classList.remove('show')">Plus tard</button>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -1048,7 +1048,42 @@ async function completeLogin(uid, acc){
   initPushSupport();
   renderResults();
   startPolling();
-  if(justSignedUp){ justSignedUp=false; document.getElementById('payoutSetupGate').classList.add('show'); }
+  if(justSignedUp){ justSignedUp=false; document.getElementById('payoutSetupGate').classList.add('show'); mountPayoutOnboarding(); }
+}
+async function mountPayoutOnboarding(){
+  const mount=document.getElementById('payoutOnboardingMount');
+  if(!mount || !me) return;
+  mount.innerHTML='<div class="search-spinner" style="margin:24px auto;"></div>';
+  try{
+    if(!window.StripeConnect){
+      await new Promise((resolve,reject)=>{
+        const s=document.createElement('script');
+        s.src='https://connect-js.stripe.com/v1.0/connect.js';
+        s.onload=resolve;
+        s.onerror=()=>reject(new Error('Chargement du script Stripe Connect impossible'));
+        document.head.appendChild(s);
+      });
+    }
+    if(!window.StripeConnect) throw new Error('StripeConnect indisponible');
+    const createAccountSession=cloudFunctions.httpsCallable('createAccountSession');
+    const result=await withTimeout(createAccountSession({phone: me.phone}), 15000);
+    const clientSecret=result.data.clientSecret;
+    const cs=getComputedStyle(document.documentElement);
+    const connectInstance=StripeConnect.init({
+      publishableKey: STRIPE_PUBLISHABLE_KEY,
+      fetchClientSecret: async()=>clientSecret,
+      appearance:{ overlays:'dialog', variables:{ colorPrimary: cs.getPropertyValue('--accent').trim(), fontFamily:"'Inter', sans-serif" } },
+    });
+    const onboarding=connectInstance.create('account-onboarding');
+    onboarding.setOnExit(()=>{ showToast("C'est enregistré, merci !"); });
+    mount.innerHTML='';
+    mount.appendChild(onboarding);
+  }catch(e){
+    // Repli : si le formulaire intégré ne se charge pas (réseau, navigateur
+    // trop ancien...), on garde quand même un moyen de finir la configuration
+    // via la page Stripe classique plutôt que de laisser un écran vide.
+    mount.innerHTML='<button class="btn gold" onclick="setupPayoutAccount()">Configurer mon compte de paiement</button>';
+  }
 }
 function setBadge(id, count){
   const el=document.getElementById(id);
