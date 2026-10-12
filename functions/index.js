@@ -127,18 +127,23 @@ exports.createConnectOnboardingLink = onCall({ secrets: [stripeSecretKey], regio
   const phone = cleanPhone(request.data && request.data.phone);
   if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
 
-  const stripe = getStripe();
-  const accountId = await getOrCreateExpressAccount(stripe, phone);
+  try {
+    const stripe = getStripe();
+    const accountId = await getOrCreateExpressAccount(stripe, phone);
 
-  const origin = (request.data && request.data.origin) || 'https://laminecamara251005-wq.github.io/baraka-gp';
-  const accountLink = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `${origin}/index.html?stripe=refresh`,
-    return_url: `${origin}/index.html?stripe=return`,
-    type: 'account_onboarding',
-  });
+    const origin = (request.data && request.data.origin) || 'https://laminecamara251005-wq.github.io/baraka-gp';
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${origin}/index.html?stripe=refresh`,
+      return_url: `${origin}/index.html?stripe=return`,
+      type: 'account_onboarding',
+    });
 
-  return { url: accountLink.url };
+    return { url: accountLink.url };
+  } catch (err) {
+    console.error('createConnectOnboardingLink a échoué pour', phone, ':', err.message);
+    throw new HttpsError('internal', err.message);
+  }
 });
 
 // Jeton pour afficher le formulaire Stripe directement dans la page (composant
@@ -148,17 +153,22 @@ exports.createAccountSession = onCall({ secrets: [stripeSecretKey], region: REGI
   const phone = cleanPhone(request.data && request.data.phone);
   if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
 
-  const stripe = getStripe();
-  const accountId = await getOrCreateExpressAccount(stripe, phone);
+  try {
+    const stripe = getStripe();
+    const accountId = await getOrCreateExpressAccount(stripe, phone);
 
-  const accountSession = await stripe.accountSessions.create({
-    account: accountId,
-    components: {
-      account_onboarding: { enabled: true },
-    },
-  });
+    const accountSession = await stripe.accountSessions.create({
+      account: accountId,
+      components: {
+        account_onboarding: { enabled: true },
+      },
+    });
 
-  return { clientSecret: accountSession.client_secret };
+    return { clientSecret: accountSession.client_secret };
+  } catch (err) {
+    console.error('createAccountSession a échoué pour', phone, ':', err.message);
+    throw new HttpsError('internal', err.message);
+  }
 });
 
 // Crée un PaymentIntent pour une commande : l'argent est prélevé et retenu
