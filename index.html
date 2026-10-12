@@ -2436,7 +2436,7 @@ async function setupPayoutAccount(){
     const result=await withTimeout(createConnectOnboardingLink({phone: me.phone, origin}), 15000);
     location.href=result.data.url;
   }catch(e){
-    showToast("Impossible d'ouvrir la configuration, réessayez");
+    showToast("Impossible d'ouvrir la configuration : "+((e&&(e.code||e.message))||'erreur inconnue'));
   }
 }
 async function confirmPickup(orderId){
