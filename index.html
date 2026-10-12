@@ -801,15 +801,20 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const cloudFunctions = firebase.app().functions('europe-west1');
 const VAPID_KEY = "BAVYtBXujd3QmNeZZCevxxTe9x3-4jzY9zgzNwCqW4OMR0gnQ3shTi_haHfv88G5aNoSKEXy7HBBIJlg3bDfXNA";
-let messaging=null;
-try{ if(firebase.messaging.isSupported()) messaging=firebase.messaging(); }catch(e){}
+// La messagerie Firebase (notifications push) n'est initialisée que si et
+// quand elle sert vraiment (voir ensureMessaging()) : le simple fait
+// d'appeler firebase.messaging() fait tenter en interne, au SDK Firebase,
+// d'enregistrer un service worker à la racine du domaine à chaque appel de
+// Cloud Function — ce qui échoue toujours sur un site dans un sous-dossier
+// comme le nôtre, et bloquait des fonctions sans rapport (paiement,
+// configuration du compte de paiement...).
+let messaging=null, messagingSupported=false;
+try{ messagingSupported=!!firebase.messaging.isSupported(); }catch(e){}
+function ensureMessaging(){
+  if(!messaging && messagingSupported){ try{ messaging=firebase.messaging(); }catch(e){} }
+  return messaging;
+}
 let swRegistration=null;
-// Enregistré dès que possible (pas seulement après connexion) : les appels
-// aux Cloud Functions tentent silencieusement de récupérer un jeton FCM dès
-// que `messaging` existe, et échouent entièrement (y compris pour des
-// fonctions sans rapport, ex. paiement) si aucun service worker n'est
-// encore enregistré au bon chemin à ce moment-là.
-if(messaging){ navigator.serviceWorker.register('firebase-messaging-sw.js').then(r=>{ swRegistration=r; }).catch(()=>{}); }
 const stripe = typeof Stripe!=='undefined' ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
 let paymentElements=null, pendingPaymentOrderId=null;
 
@@ -1688,7 +1693,12 @@ function dismissTripReminder(){
 // Style messagerie (nom de l'expéditeur + aperçu du message), jamais une
 // bannière générique style VTC ("votre chauffeur arrive").
 async function initPushSupport(){
-  if(!messaging) return;
+  // On n'initialise la messagerie Firebase que si l'autorisation a déjà été
+  // accordée lors d'une session précédente (voir note plus haut) : pas
+  // besoin de payer le risque de blocage des Cloud Functions pour quelqu'un
+  // qui n'a jamais activé les notifications.
+  if(!messagingSupported || typeof Notification==='undefined' || Notification.permission!=='granted') return;
+  if(!ensureMessaging()) return;
   try{ swRegistration=await navigator.serviceWorker.register('firebase-messaging-sw.js'); }catch(e){ return; }
   messaging.onMessage(payload=>{
     const data=payload.data||{};
@@ -1698,7 +1708,7 @@ async function initPushSupport(){
 function checkPushPrompt(){
   const banner=document.getElementById('pushPromptBanner');
   if(!banner) return;
-  if(!me || !messaging || typeof Notification==='undefined' || Notification.permission!=='default'){ banner.style.display='none'; return; }
+  if(!me || !messagingSupported || typeof Notification==='undefined' || Notification.permission!=='default'){ banner.style.display='none'; return; }
   let dismissed=false;
   try{ dismissed=localStorage.getItem('baraka-gp-push-prompt-dismissed')==='1'; }catch(e){}
   banner.style.display = dismissed ? 'none' : 'flex';
@@ -1708,7 +1718,7 @@ function dismissPushPrompt(){
   document.getElementById('pushPromptBanner').style.display='none';
 }
 async function enablePushNotifications(){
-  if(!messaging){ dismissPushPrompt(); return; }
+  if(!messagingSupported || !ensureMessaging()){ dismissPushPrompt(); return; }
   try{
     const perm=await Notification.requestPermission();
     if(perm!=='granted'){ dismissPushPrompt(); showToast("Autorisation refusée, les notifications resteront désactivées"); return; }
