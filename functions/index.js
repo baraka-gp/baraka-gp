@@ -407,6 +407,82 @@ exports.notifyOrderAccepted = onDocumentUpdated({ document: 'orders/{orderId}', 
   );
 });
 
+// Notification push au voyageur dès que le client a payé — il peut
+// récupérer le colis au lieu et à l'horaire convenus.
+exports.notifyOrderPaid = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  if (before.status === after.status || after.status !== 'paid') return;
+  await sendPush(after.gpPhone, {
+    title: after.clientName || 'Paiement reçu',
+    body: `a payé le colis : ${after.from} → ${after.to}. Vous pouvez le récupérer.`,
+    tag: `order-${event.params.orderId}`,
+  });
+});
+
+// Notification push au client dès que le voyageur propose un lieu et un
+// horaire de prise en charge.
+exports.notifyPickupProposed = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  if (!after.pickupLocation || before.pickupLocation === after.pickupLocation) return;
+  await sendPush(after.clientPhone, {
+    title: after.gpName || 'Lieu de prise en charge proposé',
+    body: `a proposé un lieu et un horaire de prise en charge pour votre colis.`,
+    tag: `order-${event.params.orderId}`,
+  });
+});
+
+// Notification push au voyageur dès que le client confirme le lieu et
+// l'horaire de prise en charge qu'il a proposés.
+exports.notifyPickupTimeAccepted = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  if (before.pickupTimeAccepted || !after.pickupTimeAccepted) return;
+  await sendPush(after.gpPhone, {
+    title: after.clientName || 'Lieu confirmé',
+    body: `a confirmé le lieu et l'horaire de prise en charge.`,
+    tag: `order-${event.params.orderId}`,
+  });
+});
+
+// Notification push au client dès que le voyageur a récupéré le colis.
+exports.notifyPickedUp = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  if (before.status === after.status || after.status !== 'picked_up') return;
+  await sendPush(after.clientPhone, {
+    title: after.gpName || 'Colis récupéré',
+    body: `a récupéré votre colis : ${after.from} → ${after.to}.`,
+    tag: `order-${event.params.orderId}`,
+  });
+});
+
+// Notification push au client dès que la remise au destinataire est confirmée.
+exports.notifyDelivered = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  if (before.status === after.status || after.status !== 'delivered') return;
+  await sendPush(after.clientPhone, {
+    title: 'Colis remis',
+    body: `Votre colis a été remis au destinataire : ${after.from} → ${after.to}.`,
+    tag: `order-${event.params.orderId}`,
+  });
+});
+
+// Notification push au voyageur dès que la commande est terminée (son
+// versement est déclenché à ce moment-là, voir transferToTraveler).
+exports.notifyCompleted = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  if (before.status === after.status || after.status !== 'completed') return;
+  await sendPush(after.gpPhone, {
+    title: 'Commande terminée',
+    body: `Livraison confirmée pour ${after.from} → ${after.to}, votre versement est en cours.`,
+    tag: `order-${event.params.orderId}`,
+  });
+});
+
 // Notification push pour la messagerie support (admin → utilisateur). Pas
 // l'inverse : l'admin lit les messages depuis la console, pas via push.
 exports.notifyUserMessage = onDocumentUpdated({ document: 'messages/{phone}', region: REGION }, async (event) => {
