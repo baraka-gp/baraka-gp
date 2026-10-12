@@ -803,6 +803,13 @@ const cloudFunctions = firebase.app().functions('europe-west1');
 const VAPID_KEY = "BAVYtBXujd3QmNeZZCevxxTe9x3-4jzY9zgzNwCqW4OMR0gnQ3shTi_haHfv88G5aNoSKEXy7HBBIJlg3bDfXNA";
 let messaging=null;
 try{ if(firebase.messaging.isSupported()) messaging=firebase.messaging(); }catch(e){}
+let swRegistration=null;
+// Enregistré dès que possible (pas seulement après connexion) : les appels
+// aux Cloud Functions tentent silencieusement de récupérer un jeton FCM dès
+// que `messaging` existe, et échouent entièrement (y compris pour des
+// fonctions sans rapport, ex. paiement) si aucun service worker n'est
+// encore enregistré au bon chemin à ce moment-là.
+if(messaging){ navigator.serviceWorker.register('firebase-messaging-sw.js').then(r=>{ swRegistration=r; }).catch(()=>{}); }
 const stripe = typeof Stripe!=='undefined' ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
 let paymentElements=null, pendingPaymentOrderId=null;
 
@@ -840,6 +847,20 @@ function withTimeout(promise, ms){
     promise,
     new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')), ms))
   ]);
+}
+// Les appels aux Cloud Functions échouent parfois une première fois avec une
+// erreur de service worker (messaging/...) sans rapport avec la fonction
+// elle-même — observé aussi bien sur le paiement que sur la configuration du
+// compte de paiement. On réessaie une fois automatiquement avant d'abandonner.
+async function callCloudFn(name, data, timeoutMs){
+  const fn=cloudFunctions.httpsCallable(name);
+  try{
+    return await withTimeout(fn(data), timeoutMs||15000);
+  }catch(e){
+    if(!(e && /service.worker|messaging\//i.test(e.message||e.code||''))) throw e;
+    await new Promise(r=>setTimeout(r,500));
+    return await withTimeout(fn(data), timeoutMs||15000);
+  }
 }
 function showToast(msg, gold){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(gold?' gold':''); setTimeout(()=>t.classList.remove('show'),3000); }
 function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
@@ -1065,8 +1086,7 @@ async function mountPayoutOnboarding(){
       });
     }
     if(!window.StripeConnect) throw new Error('StripeConnect indisponible');
-    const createAccountSession=cloudFunctions.httpsCallable('createAccountSession');
-    const result=await withTimeout(createAccountSession({phone: me.phone}), 15000);
+    const result=await callCloudFn('createAccountSession', {phone: me.phone});
     const clientSecret=result.data.clientSecret;
     const cs=getComputedStyle(document.documentElement);
     const connectInstance=StripeConnect.init({
@@ -1667,7 +1687,6 @@ function dismissTripReminder(){
 // ---- NOTIFICATIONS PUSH ----
 // Style messagerie (nom de l'expéditeur + aperçu du message), jamais une
 // bannière générique style VTC ("votre chauffeur arrive").
-let swRegistration=null;
 async function initPushSupport(){
   if(!messaging) return;
   try{ swRegistration=await navigator.serviceWorker.register('firebase-messaging-sw.js'); }catch(e){ return; }
@@ -2347,8 +2366,7 @@ async function openPaymentModal(orderId){
   document.getElementById('paymentSubmitBtn').disabled=true;
   document.getElementById('paymentOverlay').classList.add('show');
   try{
-    const createPaymentIntent=cloudFunctions.httpsCallable('createPaymentIntent');
-    const result=await withTimeout(createPaymentIntent({orderId}), 15000);
+    const result=await callCloudFn('createPaymentIntent', {orderId});
     const clientSecret=result.data.clientSecret;
     let pref=null; try{ pref=localStorage.getItem('baraka-gp-theme'); }catch(e){}
     const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -2431,9 +2449,8 @@ async function setupPayoutAccount(){
   if(!me) return;
   showToast("Préparation de la configuration...");
   try{
-    const createConnectOnboardingLink=cloudFunctions.httpsCallable('createConnectOnboardingLink');
     const origin=location.href.replace(/index\.html.*$/, '').replace(/\/$/, '');
-    const result=await withTimeout(createConnectOnboardingLink({phone: me.phone, origin}), 15000);
+    const result=await callCloudFn('createConnectOnboardingLink', {phone: me.phone, origin});
     location.href=result.data.url;
   }catch(e){
     showToast("Impossible d'ouvrir la configuration : "+((e&&(e.code||e.message))||'erreur inconnue'));
