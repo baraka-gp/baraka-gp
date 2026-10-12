@@ -23,7 +23,7 @@ on:
         required: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   logs:
@@ -103,16 +103,3 @@ jobs:
           echo "Taille : $(wc -c < /tmp/apple-pay-file) octets"
           head -c 300 /tmp/apple-pay-file
           echo ""
-
-      - name: Commiter le fichier Apple Pay récupéré (chemin temporaire)
-        if: inputs.fetch_apple_pay_file != ''
-        run: |
-          set -e
-          git clone --depth 1 --branch "${GITHUB_REF_NAME}" "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" repo-checkout
-          cp /tmp/apple-pay-file repo-checkout/apple-pay-verification-temp
-          cd repo-checkout
-          git config user.email "noreply@anthropic.com"
-          git config user.name "Claude (diagnostic workflow)"
-          git add apple-pay-verification-temp
-          git commit -m "Fichier Apple Pay recupere temporairement (a copier puis supprimer)"
-          git push origin "${GITHUB_REF_NAME}"
