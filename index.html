@@ -359,6 +359,7 @@
           <select id="searchSort" onchange="renderResults()">
             <option value="date">Date (plus proche)</option>
             <option value="kg">Poids disponible (plus grand)</option>
+            <option value="proximity">Proximité</option>
           </select>
         </div>
         <div><label>Poids min. dispo (kg)</label><input type="number" id="searchMinKg" min="1" placeholder="Ex. 5" oninput="renderResults()"></div>
@@ -973,6 +974,20 @@ function getGeoPosition(timeoutMs=6000){
       {timeout:timeoutMs}
     );
   });
+}
+// Coordonnées approximatives des villes courantes, pour le tri "Proximité" —
+// une ville tapée librement qui n'y figure pas est simplement classée en
+// dernier plutôt que de bloquer le tri.
+const CITY_COORDS={
+  Paris:[48.8566,2.3522], Nouakchott:[18.0858,-15.9785], Bamako:[12.6392,-8.0029],
+  Dakar:[14.7167,-17.4677], 'Le Caire':[30.0444,31.2357], Riyad:[24.7136,46.6753],
+  Djeddah:[21.4858,39.1925], 'La Mecque':[21.3891,39.8579], Médine:[24.5247,39.5692],
+};
+function haversineKm(lat1,lng1,lat2,lng2){
+  const R=6371, toRad=d=>d*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLng=toRad(lng2-lng1);
+  const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
 }
 async function suggestMeetingPoint(lat1,lng1,lat2,lng2){
   try{
@@ -1851,6 +1866,7 @@ function updateCityLists(){
   document.getElementById('fromCities').innerHTML=fromCities.map(c=>`<option value="${c}">`).join('');
   document.getElementById('toCities').innerHTML=toCities.map(c=>`<option value="${c}">`).join('');
 }
+let myGeoPos=null, myGeoPosPending=false;
 function renderResults(){
   document.getElementById('searchResultsSection').style.display='block';
   updateCityLists();
@@ -1859,6 +1875,14 @@ function renderResults(){
   const to=document.getElementById('searchTo').value.trim();
   const sortBy=document.getElementById('searchSort').value;
   const minKg=parseInt(document.getElementById('searchMinKg').value)||0;
+  if(sortBy==='proximity' && !myGeoPos && !myGeoPosPending){
+    myGeoPosPending=true;
+    getGeoPosition().then(pos=>{
+      myGeoPos=pos; myGeoPosPending=false;
+      if(!pos) showToast("Localisation indisponible, tri par date utilisé à la place");
+      renderResults();
+    });
+  }
   displayResults(country, from, to, sortBy, minKg);
 }
 function remainingKg(l){
@@ -1895,6 +1919,10 @@ function displayResults(country, from, to, sortBy, minKg){
     return true;
   });
   if(sortBy==='kg'){ filtered.sort((a,b)=>remainingKg(b)-remainingKg(a)); }
+  else if(sortBy==='proximity' && myGeoPos){
+    const distOf=l=>{ const c=CITY_COORDS[l.from]; return c ? haversineKm(myGeoPos.lat,myGeoPos.lng,c[0],c[1]) : Infinity; };
+    filtered.sort((a,b)=>distOf(a)-distOf(b));
+  }
   else{ filtered.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999')); }
   document.getElementById('resultCount').textContent=filtered.length+(filtered.length>1?" résultats":" résultat");
   const list=document.getElementById('resultsList');
