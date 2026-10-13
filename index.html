@@ -357,9 +357,9 @@
       <div class="row2">
         <div><label>Trier par</label>
           <select id="searchSort" onchange="renderResults()">
+            <option value="proximity" selected>Proximité</option>
             <option value="date">Date (plus proche)</option>
             <option value="kg">Poids disponible (plus grand)</option>
-            <option value="proximity">Proximité</option>
           </select>
         </div>
         <div><label>Poids min. dispo (kg)</label><input type="number" id="searchMinKg" min="1" placeholder="Ex. 5" oninput="renderResults()"></div>
@@ -1866,7 +1866,7 @@ function updateCityLists(){
   document.getElementById('fromCities').innerHTML=fromCities.map(c=>`<option value="${c}">`).join('');
   document.getElementById('toCities').innerHTML=toCities.map(c=>`<option value="${c}">`).join('');
 }
-let myGeoPos=null, myGeoPosPending=false;
+let myGeoPos=null, myGeoPosPending=false, myGeoPosTried=false;
 function renderResults(){
   document.getElementById('searchResultsSection').style.display='block';
   updateCityLists();
@@ -1875,10 +1875,10 @@ function renderResults(){
   const to=document.getElementById('searchTo').value.trim();
   const sortBy=document.getElementById('searchSort').value;
   const minKg=parseInt(document.getElementById('searchMinKg').value)||0;
-  if(sortBy==='proximity' && !myGeoPos && !myGeoPosPending){
+  if(sortBy==='proximity' && !myGeoPosTried && !myGeoPosPending){
     myGeoPosPending=true;
     getGeoPosition().then(pos=>{
-      myGeoPos=pos; myGeoPosPending=false;
+      myGeoPos=pos; myGeoPosPending=false; myGeoPosTried=true;
       if(!pos) showToast("Localisation indisponible, tri par date utilisé à la place");
       renderResults();
     });
