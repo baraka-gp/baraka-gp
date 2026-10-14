@@ -1003,6 +1003,7 @@ async function suggestMeetingPoint(lat1,lng1,lat2,lng2){
 let authMode='signup';
 let authFlowInProgress=false;
 let justSignedUp=false;
+let explicitSignOutRequested=false;
 function togglePasswordVisibility(id, btn){
   const input=document.getElementById(id);
   if(input.type==='password'){ input.type='text'; btn.innerHTML=ICON_EYE_OFF; }
@@ -1354,6 +1355,7 @@ async function authSubmit(){
 }
 async function authSignOut(){
   stopPolling();
+  explicitSignOutRequested=true;
   try{ localStorage.removeItem('baraka-gp-me'); }catch(e){}
   try{ await auth.signOut(); }catch(e){}
 }
@@ -1414,6 +1416,17 @@ auth.onAuthStateChanged(async (user)=>{
     }
     await completeLogin(user.uid, acc);
   }else{
+    if(me && !explicitSignOutRequested){
+      // Firebase signale "personne connectée" alors qu'on a déjà une
+      // session active (restaurée depuis le cache local) : sur Safari iOS
+      // notamment, la restauration de la session Firebase peut être
+      // temporairement capricieuse sans que la personne soit réellement
+      // déconnectée. On ignore ce signal plutôt que de la renvoyer à tort
+      // sur l'écran de connexion — c'était la cause du "il faut rafraîchir
+      // pour être reconnu comme connecté".
+      return;
+    }
+    explicitSignOutRequested=false;
     me=null;
     try{ localStorage.removeItem('baraka-gp-me'); }catch(e){}
     updatePointsHeader();
