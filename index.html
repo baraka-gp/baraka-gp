@@ -1879,7 +1879,15 @@ function updateCityLists(){
   document.getElementById('fromCities').innerHTML=fromCities.map(c=>`<option value="${c}">`).join('');
   document.getElementById('toCities').innerHTML=toCities.map(c=>`<option value="${c}">`).join('');
 }
+const GEO_CACHE_MS=6*60*60*1000; // 6h : évite de redemander la position à chaque ouverture
 let myGeoPos=null, myGeoPosPending=false, myGeoPosTried=false;
+try{
+  const cached=JSON.parse(localStorage.getItem('baraka-gp-geo')||'null');
+  if(cached && cached.lat!=null && (Date.now()-cached.ts)<GEO_CACHE_MS){
+    myGeoPos={lat:cached.lat, lng:cached.lng};
+    myGeoPosTried=true;
+  }
+}catch(e){}
 function renderResults(){
   document.getElementById('searchResultsSection').style.display='block';
   updateCityLists();
@@ -1892,6 +1900,7 @@ function renderResults(){
     myGeoPosPending=true;
     getGeoPosition().then(pos=>{
       myGeoPos=pos; myGeoPosPending=false; myGeoPosTried=true;
+      if(pos){ try{ localStorage.setItem('baraka-gp-geo', JSON.stringify({lat:pos.lat, lng:pos.lng, ts:Date.now()})); }catch(e){} }
       if(!pos) showToast("Localisation indisponible, tri par date utilisé à la place");
       renderResults();
     });
