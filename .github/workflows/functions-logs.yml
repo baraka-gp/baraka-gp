@@ -24,6 +24,9 @@ on:
       register_apple_pay_domain:
         description: 'Domaine à déclarer pour Apple Pay auprès de Stripe (laisser vide pour ne rien faire)'
         required: false
+      check_stripe_account:
+        description: 'Vérifier le statut du compte plateforme Stripe (oui/non)'
+        required: false
 
 permissions:
   contents: read
@@ -118,3 +121,38 @@ jobs:
             -u "$STRIPE_SECRET_KEY:" \
             -d "domain_name=$DOMAIN"
           echo ""
+
+      - name: Vérifier le statut du compte plateforme Stripe
+        if: inputs.check_stripe_account != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -e
+          echo "=== Compte plateforme (/v1/account) ==="
+          curl -sS https://api.stripe.com/v1/account -u "$STRIPE_SECRET_KEY:" \
+            | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('id:', d.get('id'))
+print('charges_enabled:', d.get('charges_enabled'))
+print('payouts_enabled:', d.get('payouts_enabled'))
+print('details_submitted:', d.get('details_submitted'))
+req = d.get('requirements', {})
+print('requirements.disabled_reason:', req.get('disabled_reason'))
+print('requirements.currently_due:', req.get('currently_due'))
+print('requirements.eventually_due:', req.get('eventually_due'))
+print('requirements.past_due:', req.get('past_due'))
+print('requirements.pending_verification:', req.get('pending_verification'))
+cap = d.get('capabilities', {})
+print('capabilities:', cap)
+"
+          echo ""
+          echo "=== Capacite Connect (controller / plateforme) ==="
+          curl -sS https://api.stripe.com/v1/account -u "$STRIPE_SECRET_KEY:" \
+            | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print('controller:', d.get('controller'))
+print('type:', d.get('type'))
+print('business_profile:', d.get('business_profile'))
+"
