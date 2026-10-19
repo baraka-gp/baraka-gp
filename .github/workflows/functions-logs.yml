@@ -151,6 +151,8 @@ jobs:
             -o /tmp/stripe-account-updated.json
           echo "=== Résultat ==="
           jq '{id, business_profile}' /tmp/stripe-account-updated.json
+          echo "=== Réponse brute (debug) ==="
+          cat /tmp/stripe-account-updated.json
 
       - name: Corriger le profil d'activité des comptes Stripe voyageurs existants
         if: inputs.fix_connected_accounts_profile != ''
@@ -179,4 +181,6 @@ jobs:
               --data-urlencode "business_profile[mcc]=4789" \
               -o /tmp/update-$ACCT.json
             jq '{id, business_profile}' /tmp/update-$ACCT.json
+            echo "--- Réponse brute (debug) ---"
+            cat /tmp/update-$ACCT.json
           done < /tmp/account-ids.txt
