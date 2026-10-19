@@ -743,7 +743,7 @@
     <p class="wizard-desc">Si vous transportez un colis un jour, remplissez vos informations de paiement (IBAN) ci-dessous pour pouvoir être payé. Vous pouvez aussi passer cette étape et le faire plus tard, depuis « Mon solde ».</p>
     <div id="payoutOnboardingMount"><div class="search-spinner" style="margin:24px auto;"></div></div>
   </div>
-  <button class="btn ghost" onclick="document.getElementById('payoutSetupGate').classList.remove('show')">Plus tard</button>
+  <button class="btn ghost" onclick="document.getElementById('payoutSetupGate').classList.remove('show')">Fermer</button>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -1090,7 +1090,11 @@ async function completeLogin(uid, acc){
   initPushSupport();
   renderResults();
   startPolling();
-  if(justSignedUp){ justSignedUp=false; document.getElementById('payoutSetupGate').classList.add('show'); mountPayoutOnboarding(); }
+  if(justSignedUp){ justSignedUp=false; openPayoutSetupGate(); }
+}
+function openPayoutSetupGate(){
+  document.getElementById('payoutSetupGate').classList.add('show');
+  mountPayoutOnboarding();
 }
 async function mountPayoutOnboarding(){
   const mount=document.getElementById('payoutOnboardingMount');
@@ -1549,7 +1553,7 @@ function renderBalancePanel(){
     const payoutStatus=myProfile.stripeOnboarded
       ? `<div class="hint" style="margin-top:6px;color:var(--accent);">${ICON_CHECK}Compte de paiement configuré, vous pouvez recevoir vos versements.</div>`
       : `<div class="hint" style="margin-top:6px;">${ICON_WARN}Configurez votre compte pour recevoir vos versements.</div>
-         <button class="btn gold sm" onclick="setupPayoutAccount()">🏦 Configurer mon compte de paiement</button>`;
+         <button class="btn gold sm" onclick="openPayoutSetupGate()">🏦 Configurer mon compte de paiement</button>`;
     html += `
     <h3 style="margin-top:20px;font-family:'Fraunces',serif;">✈️ En tant que voyageur</h3>
     ${payoutStatus}
