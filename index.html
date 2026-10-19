@@ -1113,6 +1113,7 @@ async function mountPayoutOnboarding(){
     const connectInstance=StripeConnect.init({
       publishableKey: STRIPE_PUBLISHABLE_KEY,
       fetchClientSecret: async()=>clientSecret,
+      locale: 'fr-FR',
       appearance:{ overlays:'dialog', variables:{ colorPrimary: cs.getPropertyValue('--accent').trim(), fontFamily:"'Inter', sans-serif" } },
     });
     const onboarding=connectInstance.create('account-onboarding');
