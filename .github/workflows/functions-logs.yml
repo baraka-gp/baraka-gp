@@ -168,7 +168,7 @@ jobs:
               const snap = await admin.firestore().collection('profiles').get();
               const ids = [];
               snap.forEach(doc => { const d = doc.data(); if (d.stripeAccountId) ids.push(d.stripeAccountId); });
-              require('fs').writeFileSync('/tmp/account-ids.txt', ids.join('\n'));
+              require('fs').writeFileSync('/tmp/account-ids.txt', ids.join('\n') + '\n');
               console.log('Comptes Stripe trouvés :', ids.length);
             })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
           "
