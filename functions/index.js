@@ -113,6 +113,15 @@ async function getOrCreateExpressAccount(stripe, phone) {
       country: 'FR',
       capabilities: { transfers: { requested: true } },
       business_type: 'individual',
+      // Sans ça, Stripe laisse l'inscription vide de contexte et peut
+      // reprendre l'adresse du site de la plateforme (Baraka GP) comme si
+      // c'était l'activité du voyageur lui-même — ce qui donnait
+      // l'impression que ce formulaire s'adressait au créateur de l'appli
+      // plutôt qu'à n'importe quel voyageur.
+      business_profile: {
+        product_description: 'Transport de colis entre particuliers via l\'application Baraka GP',
+        mcc: '4789',
+      },
     });
     accountId = account.id;
     await profileRef.set({ stripeAccountId: accountId }, { merge: true });
