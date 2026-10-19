@@ -30,6 +30,9 @@ on:
       set_business_name:
         description: 'Nom à définir comme business_profile.name sur Stripe (laisser vide pour ne rien faire)'
         required: false
+      fix_connected_accounts_profile:
+        description: 'Corriger le profil d activite des comptes Stripe voyageurs existants (oui/non)'
+        required: false
 
 permissions:
   contents: read
@@ -148,3 +151,32 @@ jobs:
             -o /tmp/stripe-account-updated.json
           echo "=== Résultat ==="
           jq '{id, business_profile}' /tmp/stripe-account-updated.json
+
+      - name: Corriger le profil d'activité des comptes Stripe voyageurs existants
+        if: inputs.fix_connected_accounts_profile != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const snap = await admin.firestore().collection('profiles').get();
+              const ids = [];
+              snap.forEach(doc => { const d = doc.data(); if (d.stripeAccountId) ids.push(d.stripeAccountId); });
+              require('fs').writeFileSync('/tmp/account-ids.txt', ids.join('\n'));
+              console.log('Comptes Stripe trouvés :', ids.length);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+          while IFS= read -r ACCT; do
+            [ -z "$ACCT" ] && continue
+            echo "Mise à jour de $ACCT"
+            curl -sS https://api.stripe.com/v1/accounts/$ACCT \
+              -u "$STRIPE_SECRET_KEY:" \
+              --data-urlencode "business_profile[product_description]=Transport de colis entre particuliers via l'application Baraka GP" \
+              --data-urlencode "business_profile[mcc]=4789" \
+              -o /tmp/update-$ACCT.json
+            jq '{id, business_profile}' /tmp/update-$ACCT.json
+          done < /tmp/account-ids.txt
