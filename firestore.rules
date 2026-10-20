@@ -128,10 +128,17 @@ service cloud.firestore {
       );
     }
 
-    // Points de fidélité.
+    // Points de fidélité. Lecture par id (get) ouverte à tout compte connecté
+    // — y compris anonyme — pour que le lien de confirmation de réception
+    // puisse afficher l'identifiant Baraka GP de l'expéditeur (déjà censé
+    // être écrit, en clair, sur le colis — pas une donnée secrète). Écriture
+    // restreinte à son propre solde : le crédit de points croisé (parrainage,
+    // commande terminée) est fait côté serveur par la Cloud Function
+    // awardCompletionPoints (Admin SDK, donc pas soumise à ces règles).
     match /points/{phone} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow write: if isAdmin() || (isSignedIn() && myPhone() == phone);
     }
 
     // Numéros bloqués par l'admin. Lecture ouverte à tout compte connecté

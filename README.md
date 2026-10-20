@@ -89,11 +89,23 @@ ne peut lire/écrire que son propre fil (`messages/{sonNuméro}`) ; l'admin
 (`admin.html`) garde un accès complet à tous les fils, pour répondre à
 n'importe qui.
 
-Les autres collections (`points`, et les champs non sensibles de `profiles`)
-n'ont pas encore ce traitement : un compte connecté peut toujours lire/écrire
-au-delà de ses propres données sur celles-ci (ça nécessiterait le même
-travail — lier chaque enregistrement à son auteur — prévu dans un prochain
-passage).
+**Points de fidélité (`points`) : corrigé, différemment.** Contrairement aux
+deux précédents, le parrainage et le crédit à la livraison ont volontairement
+besoin d'écrire depuis le navigateur d'une personne sur le solde d'une
+autre (le parrain, le client) — une règle "chacun ne modifie que son propre
+solde" aurait cassé ces fonctionnalités. Ce crédit a donc été déplacé côté
+serveur : la Cloud Function `awardCompletionPoints` (déclenchée quand une
+commande passe à "terminée") s'en charge désormais avec les droits admin,
+et plus aucun navigateur n'écrit le solde de quelqu'un d'autre. Les règles
+Firestore restreignent l'écriture à son propre solde ; la lecture d'un
+solde précis par id reste ouverte à tout compte connecté (y compris
+anonyme), pour que le lien de confirmation de réception puisse afficher
+l'identifiant Baraka GP de l'expéditeur — déjà censé être écrit en clair
+sur le colis, donc pas une donnée secrète.
+
+Il reste les champs non sensibles de `profiles` (nom, avatar, note...) :
+un compte connecté peut toujours les modifier au-delà des siens (prévu
+dans un prochain passage).
 
 Le lien de confirmation de réception (`?receive=...`) est protégé par le code
 à 4 chiffres à saisir, pas par le lien lui-même : toute personne qui devine ou

@@ -524,6 +524,67 @@ exports.notifyCompleted = onDocumentUpdated({ document: 'orders/{orderId}', regi
   });
 });
 
+// Génère un identifiant Baraka GP (4 caractères) à écrire sur les colis,
+// unique parmi les codes déjà attribués — équivalent serveur de genRefCode()
+// côté client (index.html), utilisé ici seulement pour créer un nouveau
+// document "points" quand il n'en existe pas encore.
+async function generateUniqueRefCode() {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  for (let attempt = 0; attempt < 20; attempt++) {
+    let code = '';
+    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    const snap = await db.collection('points').where('refCode', '==', code).limit(1).get();
+    if (snap.empty) return code;
+  }
+  throw new Error('Impossible de générer un identifiant unique après 20 tentatives');
+}
+
+// Crédite les points de fidélité quand une commande passe à "terminée" :
+// +5 au client, et +5 au parrain (une seule fois, à la toute première
+// commande terminée du filleul). Fait ici côté serveur (Admin SDK, donc pas
+// soumis à firestore.rules) plutôt que par le navigateur du voyageur ou du
+// destinataire (anonyme) qui confirme la livraison — ni l'un ni l'autre n'a
+// de raison d'avoir le droit d'écrire sur le solde de quelqu'un d'autre.
+exports.awardCompletionPoints = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  if (before.status === after.status || after.status !== 'completed') return;
+  const clientKey = cleanPhone(after.clientPhone);
+  if (!clientKey) return;
+
+  const clientRef = db.collection('points').doc(clientKey);
+  let referrerInfo = null;
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(clientRef);
+    const data = snap.exists
+      ? snap.data()
+      : { points: 0, referredBy: null, firstOrderCredited: false, refCode: await generateUniqueRefCode() };
+    data.points = (data.points || 0) + 5;
+    if (data.referredBy && !data.firstOrderCredited) {
+      data.firstOrderCredited = true;
+      referrerInfo = data.referredBy;
+    }
+    tx.set(clientRef, data, { merge: true });
+  });
+
+  if (referrerInfo) {
+    try {
+      const q = await db.collection('points').where('refCode', '==', referrerInfo).limit(1).get();
+      if (!q.empty) {
+        await db.runTransaction(async (tx) => {
+          const refDoc = q.docs[0].ref;
+          const snap = await tx.get(refDoc);
+          const data = snap.data();
+          data.points = (data.points || 0) + 5;
+          tx.set(refDoc, data, { merge: true });
+        });
+      }
+    } catch (err) {
+      console.error('awardCompletionPoints: échec du crédit parrain pour', referrerInfo, ':', err.message);
+    }
+  }
+});
+
 // Notification push pour la messagerie support (admin → utilisateur). Pas
 // l'inverse : l'admin lit les messages depuis la console, pas via push.
 exports.notifyUserMessage = onDocumentUpdated({ document: 'messages/{phone}', region: REGION }, async (event) => {

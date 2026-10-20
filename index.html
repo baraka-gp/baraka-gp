@@ -1213,7 +1213,15 @@ async function loadAll(){
   }catch(e){ messages={}; }
   try{ orders=await fetchMyOrders(); }catch(e){ orders=[]; }
   try{ orderMsgs=await fetchMyOrderMsgs(orders.map(o=>o.id)); }catch(e){ orderMsgs={}; }
-  try{ points=await fetchCollectionMap('points'); }catch(e){ points={}; }
+  // Solde de fidélité : uniquement le sien (voir aussi firestore.rules) —
+  // le crédit croisé (parrainage, commande terminée) se fait désormais
+  // côté serveur (Cloud Function awardCompletionPoints), plus par écriture
+  // directe du navigateur d'un autre utilisateur.
+  try{
+    const myPhoneKey=cleanPhone(me.phone);
+    const myPointsSnap=await withTimeout(db.collection('points').doc(myPhoneKey).get(), 8000);
+    points = myPointsSnap.exists ? {[myPhoneKey]: myPointsSnap.data()} : {};
+  }catch(e){ points={}; }
 }
 async function saveListings(){ try{ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }catch(e){} }
 async function saveProfiles(){ try{ const batch=db.batch(); Object.keys(profiles).forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }catch(e){} }
@@ -1794,16 +1802,6 @@ function updatePointsHeader(){
   const key=ensurePoints(me.phone);
   document.getElementById('pointsBarHeader').style.display='inline-flex';
   document.getElementById('pointsHeaderVal').textContent = points[key].points;
-}
-async function awardPoints(phone, amount, reasonToast){
-  const key=ensurePoints(phone);
-  const before = Math.floor(points[key].points/50);
-  points[key].points += amount;
-  const after = Math.floor(points[key].points/50);
-  await savePoints();
-  if(reasonToast) showToast(reasonToast);
-  if(after>before) showToast(`🎉 Super, vous avez une remise de ${(after-before)*5}€ disponible !`, true);
-  updatePointsHeader();
 }
 function renderPointsPanel(){
   const key=ensurePoints(me.phone);
@@ -2918,16 +2916,10 @@ async function confirmDelivery(orderId){
     profiles[gpProfileKey].completedTripsCount = (profiles[gpProfileKey].completedTripsCount||0) + 1;
     await saveProfiles();
   }
-  await awardPoints(o.clientPhone, 5, "🎉 Commande terminée, +5 points !");
-  const gpKey=ensurePoints(o.gpPhone);
-  const clientPointsKey=cleanPhone(o.clientPhone);
-  if(points[clientPointsKey] && points[clientPointsKey].referredBy && !points[clientPointsKey].firstOrderCredited){
-    points[clientPointsKey].firstOrderCredited=true;
-    const referrerCode=points[clientPointsKey].referredBy;
-    const referrerKey=Object.keys(points).find(k=>points[k] && points[k].refCode===referrerCode);
-    if(referrerKey) points[referrerKey].points += 5;
-    await savePoints();
-  }
+  // Le crédit de points (client +5, parrain +5 le cas échéant) est fait côté
+  // serveur par la Cloud Function awardCompletionPoints, déclenchée par ce
+  // même passage à "completed" — plus aucun navigateur n'écrit directement
+  // le solde de quelqu'un d'autre (voir firestore.rules).
   showToast("Livraison confirmée, merci ! 🎉");
   renderOrders();
 }
@@ -3329,27 +3321,6 @@ async function publishColis(){
 }
 
 // ---- RECEIVE MODE (destinataire, sans compte) ----
-async function grantOrderCompletionRewards(clientPhone){
-  const key=cleanPhone(clientPhone);
-  const ref=db.collection('points').doc(key);
-  const snap=await withTimeout(ref.get(), 8000);
-  const data=snap.exists ? snap.data() : { points:0, referredBy:null, firstOrderCredited:false, refCode:genRefCode() };
-  data.points=(data.points||0)+5;
-  let referrerDoc=null;
-  if(data.referredBy && !data.firstOrderCredited){
-    data.firstOrderCredited=true;
-    try{
-      const q=await withTimeout(db.collection('points').where('refCode','==',data.referredBy).limit(1).get(), 8000);
-      if(!q.empty) referrerDoc=q.docs[0];
-    }catch(e){}
-  }
-  await withTimeout(ref.set(data), 8000);
-  if(referrerDoc){
-    const rData=referrerDoc.data();
-    rData.points=(rData.points||0)+5;
-    try{ await withTimeout(db.collection('points').doc(referrerDoc.id).set(rData), 8000); }catch(e){}
-  }
-}
 async function initReceiveMode(orderId){
   receiveMode=true;
   document.getElementById('receiveGate').classList.add('show');
@@ -3413,9 +3384,11 @@ async function confirmReceiveDelivery(orderId){
   if(order.status==='completed'){ renderReceiveContent(orderId, order); return; }
   const arrivalDate=orderArrivalDateStr(order);
   if(arrivalDate && arrivalDate>todayDateStr()){ showToast("Le voyageur n'est pas encore arrivé, revenez après le "+fmtDate(arrivalDate)); renderReceiveContent(orderId, order); return; }
+  // Le crédit de points (client +5, parrain +5 le cas échéant) est fait côté
+  // serveur par la Cloud Function awardCompletionPoints, déclenchée par ce
+  // même passage à "completed".
   try{
     await withTimeout(db.collection('orders').doc(orderId).update({status:'completed'}), 8000);
-    await grantOrderCompletionRewards(order.clientPhone);
   }catch(e){ showToast("Erreur, réessayez"); return; }
   showToast("Merci, réception confirmée ! 🎉");
   renderReceiveContent(orderId, {...order, status:'completed'});
