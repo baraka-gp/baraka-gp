@@ -33,6 +33,9 @@ on:
       fix_connected_accounts_profile:
         description: 'Corriger le profil d activite des comptes Stripe voyageurs existants (oui/non)'
         required: false
+      check_connected_accounts:
+        description: 'Verifier le statut (paiements actives, virements actives, pieces manquantes) des comptes Stripe voyageurs existants (oui/non)'
+        required: false
 
 permissions:
   contents: read
@@ -184,3 +187,32 @@ jobs:
             echo "--- Réponse brute (debug) ---"
             cat /tmp/update-$ACCT.json
           done < /tmp/account-ids.txt
+
+      - name: Vérifier le statut des comptes Stripe voyageurs existants
+        if: inputs.check_connected_accounts != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const snap = await admin.firestore().collection('profiles').get();
+              const rows = [];
+              snap.forEach(doc => { const d = doc.data(); if (d.stripeAccountId) rows.push({ phone: doc.id, name: d.name, accountId: d.stripeAccountId, stripeOnboarded: d.stripeOnboarded || false }); });
+              require('fs').writeFileSync('/tmp/accounts.json', JSON.stringify(rows));
+              console.log('Comptes Stripe trouvés :', rows.length);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+          node -e "
+            const rows = JSON.parse(require('fs').readFileSync('/tmp/accounts.json', 'utf8'));
+            require('fs').writeFileSync('/tmp/accounts.txt', rows.map(r => [r.phone, r.accountId, r.name, r.stripeOnboarded].join('|')).join('\n') + '\n');
+          "
+          while IFS='|' read -r PHONE ACCT NAME ONBOARDED; do
+            [ -z "$ACCT" ] && continue
+            echo "=== $NAME ($PHONE) — $ACCT — profils.stripeOnboarded=$ONBOARDED ==="
+            curl -sS https://api.stripe.com/v1/accounts/$ACCT -u "$STRIPE_SECRET_KEY:" -o /tmp/acct-$ACCT.json
+            jq '{id, charges_enabled, payouts_enabled, details_submitted, requirements: {currently_due, disabled_reason}}' /tmp/acct-$ACCT.json
+          done < /tmp/accounts.txt
