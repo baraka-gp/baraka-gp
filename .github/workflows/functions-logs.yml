@@ -349,7 +349,10 @@ jobs:
           TOKEN=$(gcloud auth print-access-token)
           curl -sS "https://recaptchaenterprise.googleapis.com/v1/projects/baraka-gp/keys" \
             -H "Authorization: Bearer $TOKEN" -o /tmp/keys.json
-          jq '.keys[] | {name, displayName, webSettings}' /tmp/keys.json
+          echo "=== Réponse brute ==="
+          cat /tmp/keys.json
+          echo ""
+          jq '.keys[]? | {name, displayName, webSettings}' /tmp/keys.json
 
       - name: Ajouter un domaine aux clés reCAPTCHA Enterprise
         if: inputs.add_recaptcha_domain != ''
