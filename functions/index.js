@@ -100,19 +100,29 @@ async function sendEmail(to, subject, html) {
 const EMAIL_SECRETS = [gmailUser, gmailAppPassword];
 const APP_URL = 'https://laminecamara251005-wq.github.io/baraka-gp/index.html';
 
+// Découpe un nom complet en prénom / nom, pour pré-remplir Stripe avec ce
+// qu'on a déjà collecté à l'inscription (évite de ressaisir l'identité).
+function splitName(fullName) {
+  const parts = (fullName || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return {};
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') || undefined };
+}
+
 // Crée (si besoin) le compte Stripe Express d'un voyageur et renvoie son id
 // — partagé par les deux façons de compléter sa fiche (identité, IBAN) :
 // lien Stripe classique (redirection) ou composant intégré (sur place).
-async function getOrCreateExpressAccount(stripe, phone) {
+async function getOrCreateExpressAccount(stripe, phone, name, email) {
   const profileRef = db.collection('profiles').doc(phone);
   const profileSnap = await profileRef.get();
   let accountId = profileSnap.exists ? profileSnap.data().stripeAccountId : null;
   if (!accountId) {
+    const { firstName, lastName } = splitName(name);
     const account = await stripe.accounts.create({
       type: 'express',
       country: 'FR',
       capabilities: { transfers: { requested: true } },
       business_type: 'individual',
+      email: email || undefined,
       // Sans ça, Stripe laisse l'inscription vide de contexte et peut
       // reprendre l'adresse du site de la plateforme (Baraka GP) comme si
       // c'était l'activité du voyageur lui-même — ce qui donnait
@@ -121,6 +131,14 @@ async function getOrCreateExpressAccount(stripe, phone) {
       business_profile: {
         product_description: 'Transport de colis entre particuliers via l\'application Baraka GP',
         mcc: '4789',
+      },
+      // Pré-remplit ce qu'on a déjà (saisi à l'inscription dans l'appli),
+      // pour que le voyageur n'ait pas à le retaper sur le formulaire Stripe.
+      individual: {
+        first_name: firstName,
+        last_name: lastName,
+        email: email || undefined,
+        phone: phone || undefined,
       },
     });
     accountId = account.id;
@@ -135,10 +153,12 @@ exports.createConnectOnboardingLink = onCall({ secrets: [stripeSecretKey], regio
   if (!request.auth) throw new HttpsError('unauthenticated', 'Connexion requise');
   const phone = cleanPhone(request.data && request.data.phone);
   if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
+  const name = request.data && request.data.name;
+  const email = request.data && request.data.email;
 
   try {
     const stripe = getStripe();
-    const accountId = await getOrCreateExpressAccount(stripe, phone);
+    const accountId = await getOrCreateExpressAccount(stripe, phone, name, email);
 
     const origin = (request.data && request.data.origin) || 'https://laminecamara251005-wq.github.io/baraka-gp';
     const accountLink = await stripe.accountLinks.create({
@@ -161,10 +181,12 @@ exports.createAccountSession = onCall({ secrets: [stripeSecretKey], region: REGI
   if (!request.auth) throw new HttpsError('unauthenticated', 'Connexion requise');
   const phone = cleanPhone(request.data && request.data.phone);
   if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
+  const name = request.data && request.data.name;
+  const email = request.data && request.data.email;
 
   try {
     const stripe = getStripe();
-    const accountId = await getOrCreateExpressAccount(stripe, phone);
+    const accountId = await getOrCreateExpressAccount(stripe, phone, name, email);
 
     const accountSession = await stripe.accountSessions.create({
       account: accountId,

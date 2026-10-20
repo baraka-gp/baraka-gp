@@ -1111,7 +1111,7 @@ async function mountPayoutOnboarding(){
       });
     }
     if(!window.StripeConnect) throw new Error('StripeConnect indisponible');
-    const result=await callCloudFn('createAccountSession', {phone: me.phone});
+    const result=await callCloudFn('createAccountSession', {phone: me.phone, name: me.name, email: me.email});
     const clientSecret=result.data.clientSecret;
     const cs=getComputedStyle(document.documentElement);
     const connectInstance=StripeConnect.init({
@@ -2515,7 +2515,7 @@ async function setupPayoutAccount(){
   showToast("Préparation de la configuration...");
   try{
     const origin=location.href.replace(/index\.html.*$/, '').replace(/\/$/, '');
-    const result=await callCloudFn('createConnectOnboardingLink', {phone: me.phone, origin});
+    const result=await callCloudFn('createConnectOnboardingLink', {phone: me.phone, name: me.name, email: me.email, origin});
     location.href=result.data.url;
   }catch(e){
     showToast("Impossible d'ouvrir la configuration : "+((e&&(e.message||e.code))||'erreur inconnue'));
