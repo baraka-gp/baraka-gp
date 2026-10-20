@@ -1168,17 +1168,44 @@ async function fetchCollectionMap(name){
   snap.forEach(d=>{ map[d.id]=d.data(); });
   return map;
 }
+// Ne renvoie que les commandes où la personne connectée est l'une des deux
+// parties (client ou voyageur) — avant, toute la collection "orders" (donc
+// les commandes de tout le monde) était téléchargée dans chaque navigateur,
+// juste filtrée après coup en JS. Deux requêtes car Firestore ne sait pas
+// faire "clientPhone == X OU gpPhone == X" en une seule.
+async function fetchMyOrders(){
+  if(!me) return [];
+  const myPhone=cleanPhone(me.phone);
+  try{
+    const [asClient, asGp]=await Promise.all([
+      withTimeout(db.collection('orders').where('clientPhone','==',myPhone).get(), 8000),
+      withTimeout(db.collection('orders').where('gpPhone','==',myPhone).get(), 8000),
+    ]);
+    const map={};
+    asClient.docs.forEach(d=>{ map[d.id]=d.data(); });
+    asGp.docs.forEach(d=>{ map[d.id]=d.data(); });
+    return Object.values(map);
+  }catch(e){ return []; }
+}
+// Pareil pour les messages liés aux commandes : seulement ceux des commandes
+// ci-dessus (fil client/voyageur, et fil destinataire s'il existe).
+async function fetchMyOrderMsgs(orderIds){
+  const result={};
+  await Promise.all(orderIds.flatMap(id=>[id, id+'_recipient']).map(async docId=>{
+    try{
+      const snap=await withTimeout(db.collection('orderMsgs').doc(docId).get(), 8000);
+      if(snap.exists) result[docId]=snap.data().thread||[];
+    }catch(e){}
+  }));
+  return result;
+}
 async function loadAll(){
   try{ listings=await fetchCollectionArray('listings'); }catch(e){ listings=[]; }
   try{ profiles=await fetchCollectionMap('profiles'); }catch(e){ profiles={}; }
   try{ alerts=await fetchCollectionArray('alerts'); }catch(e){ alerts=[]; }
   try{ messages=await fetchCollectionMap('messages'); }catch(e){ messages={}; }
-  try{ orders=await fetchCollectionArray('orders'); }catch(e){ orders=[]; }
-  try{
-    const omMap=await fetchCollectionMap('orderMsgs');
-    orderMsgs={};
-    Object.keys(omMap).forEach(id=>{ orderMsgs[id]=omMap[id].thread||[]; });
-  }catch(e){ orderMsgs={}; }
+  try{ orders=await fetchMyOrders(); }catch(e){ orders=[]; }
+  try{ orderMsgs=await fetchMyOrderMsgs(orders.map(o=>o.id)); }catch(e){ orderMsgs={}; }
   try{ points=await fetchCollectionMap('points'); }catch(e){ points={}; }
 }
 async function saveListings(){ try{ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }catch(e){} }
@@ -1190,7 +1217,12 @@ async function saveProfiles(){ try{ const batch=db.batch(); Object.keys(profiles
 async function saveIdPhoto(phone, idPhoto, idType){ try{ await db.collection('profilesPrivate').doc(phone).set({idPhoto, idType: idType||null}); }catch(e){} }
 async function saveAlerts(){ try{ const batch=db.batch(); alerts.forEach(a=>batch.set(db.collection('alerts').doc(String(a.id)), a)); await batch.commit(); }catch(e){} }
 async function saveMessages(){ try{ const batch=db.batch(); Object.keys(messages).forEach(k=>batch.set(db.collection('messages').doc(k), messages[k])); await batch.commit(); }catch(e){} }
-async function saveOrders(){ try{ const batch=db.batch(); orders.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }catch(e){} }
+// `ids` restreint l'écriture aux commandes réellement modifiées : sans ça,
+// chaque sauvegarde réécrirait tout le tableau `orders` en mémoire (y
+// compris des commandes d'autres personnes si jamais il y en avait), ce que
+// les règles Firestore (restreintes à ses propres commandes) refuseraient
+// en bloc.
+async function saveOrders(ids){ try{ const targets = ids ? orders.filter(o=>ids.includes(o.id)) : orders; const batch=db.batch(); targets.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }catch(e){} }
 // Une commande "En attente" (le voyageur n'a jamais répondu) ou "Acceptée"
 // (jamais payée) devient caduque dès que la date du trajet est passée : on
 // la marque "Expirée" plutôt que de la laisser bloquée indéfiniment.
@@ -1200,7 +1232,7 @@ async function expireStaleOrders(){
   const toExpire=orders.filter(o=>staleStatuses.includes(o.status) && o.tripDate && o.tripDate<today);
   if(toExpire.length===0) return;
   toExpire.forEach(o=>{ o.status='expired'; });
-  await saveOrders();
+  await saveOrders(toExpire.map(o=>o.id));
 }
 async function saveOrderMsgs(){ try{ const batch=db.batch(); Object.keys(orderMsgs).forEach(id=>batch.set(db.collection('orderMsgs').doc(id), {thread:orderMsgs[id]})); await batch.commit(); }catch(e){} }
 async function savePoints(){ try{ const batch=db.batch(); Object.keys(points).forEach(k=>batch.set(db.collection('points').doc(k), points[k])); await batch.commit(); }catch(e){} }
@@ -2117,11 +2149,8 @@ function showProfileDetail(phone){
   const key=cleanPhone(phone);
   const profile=profiles[key]||{};
   const avg=gpRating(key);
-  const tripsCount=orders.filter(o=>cleanPhone(o.gpPhone)===key && o.status==='completed').length;
-  const comments=orders
-    .filter(o=>cleanPhone(o.gpPhone)===key && o.rating && o.ratingComment)
-    .sort((a,b)=>b.createdAt-a.createdAt)
-    .slice(0,5);
+  const tripsCount=profile.completedTripsCount||0;
+  const comments=(profile.publicReviews||[]).map(r=>({rating:r.rating, ratingComment:r.comment}));
   const avatarHtml = profile.avatar && profile.avatar.type==='image'
     ? `<img src="${profile.avatar.data}" class="avatar" style="width:64px;height:64px;">`
     : `<div class="avatar avatar-placeholder" style="width:64px;height:64px;font-size:24px;">${esc((profile.name||'?').charAt(0).toUpperCase())}</div>`;
@@ -2373,7 +2402,7 @@ async function submitOrder(){
     createdAt:Date.now()
   };
   orders.push(order);
-  await saveOrders();
+  await saveOrders([order.id]);
   ensureThread(me.phone, me.name);
   closeOrderModal();
   showToast("Commande envoyée ! En attente de réponse du voyageur 🙏");
@@ -2667,7 +2696,7 @@ async function respondOrder(orderId, status){
   if(status==='cancelled_gp' || status==='cancelled_client') fresh.adminSeen=false;
   if(status==='accepted') fresh.acceptedAt=Date.now();
   if(geoUpdate) Object.assign(fresh, geoUpdate);
-  await saveOrders();
+  await saveOrders([orderId]);
   showToast(status==='accepted' ? (fresh.pickupSuggested ? "Commande acceptée ! Point de RDV suggéré automatiquement." : "Commande acceptée !"+(noSuggestionReason?" "+noSuggestionReason:"")) : "Mise à jour effectuée");
   renderOrders();
 }
@@ -2679,7 +2708,7 @@ async function gpProposePickup(orderId){
   if(!loc||!time){ showToast("Merci de remplir le lieu et l'horaire"); return; }
   if(o.tripDate && time.slice(0,10)>o.tripDate){ showToast("La prise en charge doit avoir lieu avant ou le jour du départ ("+fmtDate(o.tripDate)+")"); return; }
   o.pickupLocation=loc; o.pickupTime=time; o.pickupTimeAccepted=false;
-  await saveOrders();
+  await saveOrders([orderId]);
   showToast("Lieu et horaire proposés au client !");
   renderOrders();
 }
@@ -2687,7 +2716,7 @@ async function acceptPickupTime(orderId){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
   o.pickupTimeAccepted=true;
-  await saveOrders();
+  await saveOrders([orderId]);
   showToast("Lieu et horaire confirmés !");
   renderOrders();
 }
@@ -2702,7 +2731,7 @@ async function payOrder(orderId){
     points[key].points -= 50;
     await savePoints();
     updatePointsHeader();
-    await saveOrders();
+    await saveOrders([orderId]);
   }
   openPaymentModal(orderId);
 }
@@ -2813,7 +2842,7 @@ async function confirmPickup(orderId){
   if(!o||!input) return;
   if(input.value.trim()!==o.pickupCode){ showToast("Code incorrect, redemandez-le au voyageur"); return; }
   o.status='picked_up';
-  await saveOrders();
+  await saveOrders([orderId]);
   showToast("Prise en charge confirmée ! ✈️");
   renderOrders();
 }
@@ -2833,7 +2862,7 @@ async function markDelivered(orderId){
   if(!o) return;
   o.deliveryCode = String(Math.floor(1000+Math.random()*9000));
   o.status='delivered';
-  await saveOrders();
+  await saveOrders([orderId]);
   showDeliveryCode(orderId);
   renderOrders();
 }
@@ -2871,7 +2900,17 @@ async function confirmDelivery(orderId){
     return;
   }
   o.status='completed';
-  await saveOrders();
+  await saveOrders([orderId]);
+  // Les commandes ne sont plus accessibles qu'à leurs deux participants (voir
+  // firestore.rules) : ce compteur, affiché sur le profil public du voyageur
+  // (showProfileDetail), ne peut donc plus être recalculé en scannant toutes
+  // les commandes — on le maintient à jour ici, au seul moment où une
+  // commande devient "terminée".
+  const gpProfileKey=cleanPhone(o.gpPhone);
+  if(profiles[gpProfileKey]){
+    profiles[gpProfileKey].completedTripsCount = (profiles[gpProfileKey].completedTripsCount||0) + 1;
+    await saveProfiles();
+  }
   await awardPoints(o.clientPhone, 5, "🎉 Commande terminée, +5 points !");
   const gpKey=ensurePoints(o.gpPhone);
   const clientPointsKey=cleanPhone(o.clientPhone);
@@ -2904,7 +2943,7 @@ async function submitRating(){
   if(ratingTarget==='client'){
     o.clientRating=ratingStars;
     o.clientRatingComment=comment;
-    await saveOrders();
+    await saveOrders([ratingOrderId]);
     const clientKey=cleanPhone(o.clientPhone);
     if(!profiles[clientKey]) profiles[clientKey]={name:o.clientName, phone:o.clientPhone, verified:false, ratingSum:0, ratingCount:0};
     profiles[clientKey].clientRatingSum = (profiles[clientKey].clientRatingSum||0) + ratingStars;
@@ -2913,11 +2952,19 @@ async function submitRating(){
   }else{
     o.rating=ratingStars;
     o.ratingComment=comment;
-    await saveOrders();
+    await saveOrders([ratingOrderId]);
     const gpKey=cleanPhone(o.gpPhone);
     if(profiles[gpKey]){
       profiles[gpKey].ratingSum = (profiles[gpKey].ratingSum||0) + ratingStars;
       profiles[gpKey].ratingCount = (profiles[gpKey].ratingCount||0) + 1;
+      // Pareil que completedTripsCount : les commentaires publics affichés sur
+      // le profil d'un voyageur ne peuvent plus venir d'un scan de toutes les
+      // commandes (devenues privées), donc on en garde une petite copie ici.
+      if(comment){
+        const reviews=(profiles[gpKey].publicReviews||[]).slice(0,4);
+        reviews.unshift({rating:ratingStars, comment, createdAt:Date.now()});
+        profiles[gpKey].publicReviews=reviews;
+      }
       await saveProfiles();
     }
   }
@@ -3104,7 +3151,7 @@ async function acceptColisRequest(reqId){
     packageType:'colis', createdAt:Date.now()
   };
   orders.push(order);
-  await saveOrders();
+  await saveOrders([order.id]);
   listings=listings.filter(x=>x.id!==reqId);
   try{ await db.collection('listings').doc(reqId).delete(); }catch(e){}
   ensureThread(req.phone, req.name);

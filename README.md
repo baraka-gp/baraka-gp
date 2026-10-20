@@ -73,10 +73,22 @@ le reste du profil. Les limites ci-dessous concernent le reste des données
 Un compte (email + mot de passe) est obligatoire pour utiliser `index.html`,
 et le numéro de téléphone est désormais vérifié par SMS (Firebase Phone
 Auth) juste après l'inscription. Les règles Firestore exigent qu'on soit
-connecté pour lire ou écrire quoi que ce soit, mais ne vérifient pas encore
-qu'une commande, un message ou un profil n'est modifié que par son
-propriétaire (ça nécessiterait de lier chaque enregistrement au compte de
-son auteur, plus large que ce qui est fait ici).
+connecté pour lire ou écrire quoi que ce soit.
+
+**Commandes (`orders`) et leurs messages (`orderMsgs`) : corrigé.** Ce n'est
+plus "connecté = accès à tout" : l'app ne télécharge et ne peut écrire que
+les commandes où on est le client ou le voyageur (deux requêtes Firestore
+`where`, voir `fetchMyOrders()`), et les règles (`firestore.rules`) refusent
+désormais côté serveur toute lecture en liste ou écriture sur la commande de
+quelqu'un d'autre. Seule exception, volontaire : le lien de confirmation de
+réception (compte anonyme, voir plus bas) peut lire une commande précise par
+son id et la faire passer de "livrée" à "terminée", rien d'autre.
+
+Les autres collections (`messages`, `points`, et les champs non sensibles de
+`profiles`) n'ont pas encore ce traitement : un compte connecté peut toujours
+lire/écrire au-delà de ses propres données sur celles-ci (ça nécessiterait
+le même travail — lier chaque enregistrement à son auteur — prévu dans un
+prochain passage).
 
 Le lien de confirmation de réception (`?receive=...`) est protégé par le code
 à 4 chiffres à saisir, pas par le lien lui-même : toute personne qui devine ou

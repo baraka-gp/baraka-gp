@@ -20,6 +20,15 @@ service cloud.firestore {
       );
     }
 
+    // Numéro de téléphone (nettoyé) de la personne connectée, d'après son
+    // propre document "accounts" — null pour un compte anonyme (ex. le lien
+    // de confirmation de réception, qui n'a pas de compte "accounts").
+    function myPhone() {
+      return isSignedIn() && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.phoneClean
+        : null;
+    }
+
     // Comptes utilisateurs (créés à l'inscription dans index.html). Chacun ne
     // peut lire/modifier que le sien.
     match /accounts/{uid} {
@@ -78,13 +87,25 @@ service cloud.firestore {
     }
 
     // Commandes : le workflow (accepter/payer/récupérer/livrer) est piloté par
-    // le client et le voyageur eux-mêmes ; l'app ne restreint pas encore ces
-    // écritures à leur seul auteur (nécessiterait de lier chaque commande au
-    // compte de son auteur).
+    // le client et le voyageur eux-mêmes. Lecture par id (get) ouverte à tout
+    // compte connecté — y compris anonyme — pour le lien de confirmation de
+    // réception (le destinataire n'a pas de compte "accounts" ; l'id de la
+    // commande dans le lien fait déjà office de "clé", comme documenté dans
+    // le README). En revanche, lister/interroger la collection (ex. la
+    // recherche de l'app par clientPhone/gpPhone) ne renvoie que les
+    // commandes dont on est l'une des deux parties.
     match /orders/{id} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && (resource.data.clientPhone == myPhone() || resource.data.gpPhone == myPhone());
+      allow create: if isSignedIn() && (request.resource.data.clientPhone == myPhone() || request.resource.data.gpPhone == myPhone());
+      allow update: if isSignedIn() && (
+        resource.data.clientPhone == myPhone() || resource.data.gpPhone == myPhone() ||
+        // Le destinataire (lien de confirmation, compte anonyme) peut
+        // uniquement faire passer une commande de "livrée" à "terminée" —
+        // jamais toucher au prix, au lieu de RDV ou à autre chose.
+        (resource.data.status == 'delivered' && request.resource.data.status == 'completed'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+      );
       allow delete: if isAdmin();
     }
 
@@ -93,9 +114,18 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isSignedIn();
     }
-    match /orderMsgs/{orderId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+    // Le fil "...{orderId}_recipient" reste accessible à qui a le lien de
+    // confirmation (compte anonyme, pas de numéro) — même niveau de sécurité
+    // que l'id de commande lui-même (voir README). Le fil client/voyageur
+    // ("{orderId}") est, lui, restreint aux deux participants de la commande.
+    match /orderMsgs/{msgId} {
+      function linkedOrderId() { return msgId.split('_recipient')[0]; }
+      function isRecipientThread() { return msgId != linkedOrderId(); }
+      function linkedOrder() { return get(/databases/$(database)/documents/orders/$(linkedOrderId())).data; }
+      allow read, write: if isSignedIn() && (
+        isRecipientThread() ||
+        linkedOrder().clientPhone == myPhone() || linkedOrder().gpPhone == myPhone()
+      );
     }
 
     // Points de fidélité.
