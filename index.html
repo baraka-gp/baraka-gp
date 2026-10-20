@@ -477,7 +477,7 @@
     <div class="role-toggle">
       <div class="active" id="roleClient" data-i18n="tabMySends" onclick="switchRole('client')">Mes envois <span class="drawer-badge" id="badgeRoleClient" style="display:none;">0</span></div>
       <div id="roleGp" data-i18n="tabReceivedOrders" onclick="switchRole('gp')">Commandes reçues (GP) <span class="drawer-badge" id="badgeRoleGp" style="display:none;">0</span></div>
-      <div id="roleCompleted" data-i18n="tabHistory" onclick="switchRole('completed')">Historique</div>
+      <div id="roleCompleted" data-i18n="tabHistory" onclick="switchRole('completed')">Historique <span class="drawer-badge" id="badgeRoleHistory" style="display:none;">0</span></div>
     </div>
     <div id="ordersList"></div>
   </div>
@@ -1473,27 +1473,32 @@ function setBadge(id, count){
   else{ el.style.display='none'; }
 }
 function updateNotifBadge(){
-  if(!me){ setBadge('notifBadge',0); setBadge('badgeMessages',0); setBadge('badgeOrders',0); setBadge('badgeRoleClient',0); setBadge('badgeRoleGp',0); setBadge('bnBadgeOrders',0); setBadge('bnBadgeMore',0); return; }
+  if(!me){ setBadge('notifBadge',0); setBadge('badgeMessages',0); setBadge('badgeOrders',0); setBadge('badgeRoleClient',0); setBadge('badgeRoleGp',0); setBadge('badgeRoleHistory',0); setBadge('bnBadgeOrders',0); setBadge('bnBadgeMore',0); return; }
   const myPhone=cleanPhone(me.phone);
   const msgKey=messages[myPhone];
   const messagesCount = (msgKey && msgKey.unreadUser) ? 1 : 0;
-  let clientOrdersCount=0, gpOrdersCount=0;
+  // Les commandes "terminées" n'apparaissent que dans l'onglet Historique
+  // (Mes envois / Commandes reçues les masquent) : il faut donc compter
+  // séparément de quoi afficher le badge sur le bon onglet, sinon le badge
+  // pointait vers un onglet dont la liste semblait vide.
+  let clientOrdersCount=0, gpOrdersCount=0, historyCount=0;
   orders.forEach(o=>{
     if(cleanPhone(o.clientPhone)===myPhone){
       if(['accepted','delivered'].includes(o.status)) clientOrdersCount++;
-      if(o.status==='completed' && !o.rating) clientOrdersCount++;
+      if(o.status==='completed' && !o.rating) historyCount++;
     }
     if(cleanPhone(o.gpPhone)===myPhone){
       if(['pending','picked_up'].includes(o.status)) gpOrdersCount++;
-      if(o.status==='completed' && !o.clientRating) gpOrdersCount++;
+      if(o.status==='completed' && !o.clientRating) historyCount++;
     }
   });
-  const ordersCount=clientOrdersCount+gpOrdersCount;
+  const ordersCount=clientOrdersCount+gpOrdersCount+historyCount;
   setBadge('notifBadge', messagesCount+ordersCount);
   setBadge('badgeMessages', messagesCount);
   setBadge('badgeOrders', ordersCount);
   setBadge('badgeRoleClient', clientOrdersCount);
   setBadge('badgeRoleGp', gpOrdersCount);
+  setBadge('badgeRoleHistory', historyCount);
   setBadge('bnBadgeOrders', ordersCount);
   setBadge('bnBadgeMore', messagesCount);
 }
