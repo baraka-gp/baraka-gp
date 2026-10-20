@@ -899,6 +899,9 @@ const I18N = {
     travelerHandsToRecipient:'The traveler hands the package to the recipient, who gives them their receipt code to confirm.',
     rateThisTraveler:'Rate this traveler', rateThisClient:'Rate this client',
     travelerRatedLabel:'Traveler rated:', clientRatedLabel:'Client rated:',
+    noMessagesWriteUs:'No messages yet. Write to us!', noMessages:'No messages yet.',
+    cancelPossibleFor:'⏳ Cancellation possible for another {h}h',
+    cancelMinutesLeft:'⏳ Trip in less than 48h: {min} min left to cancel with no conditions',
   },
   ar: {
     bnSearch:'بحث', bnSend:'إرسال', bnPublish:'سافر', bnOrders:'التتبع', bnMore:'المزيد',
@@ -997,6 +1000,9 @@ const I18N = {
     travelerHandsToRecipient:'يسلّم المسافر الطرد إلى المستلم، الذي يعطيه رمز الاستلام للتأكيد.',
     rateThisTraveler:'تقييم هذا المسافر', rateThisClient:'تقييم هذا العميل',
     travelerRatedLabel:'تقييم المسافر:', clientRatedLabel:'تقييم العميل:',
+    noMessagesWriteUs:'لا توجد رسائل بعد. راسلنا!', noMessages:'لا توجد رسائل بعد.',
+    cancelPossibleFor:'⏳ الإلغاء ممكن لمدة {h} ساعة أخرى',
+    cancelMinutesLeft:'⏳ الرحلة بعد أقل من 48 ساعة: تبقّى {min} دقيقة للإلغاء دون شروط',
   },
 };
 let currentLang='fr';
@@ -1053,6 +1059,10 @@ function applyLanguage(lang){
   try{
     const viewMydemandes=document.getElementById('viewMydemandes');
     if(viewMydemandes && viewMydemandes.style.display!=='none' && typeof renderMyDemandes==='function' && typeof me!=='undefined' && me) renderMyDemandes();
+  }catch(e){}
+  try{
+    const viewMessages=document.getElementById('viewMessages');
+    if(viewMessages && viewMessages.style.display!=='none' && typeof renderThread==='function' && typeof me!=='undefined' && me) renderThread();
   }catch(e){}
 }
 
@@ -2061,7 +2071,7 @@ function renderThread(){
   const box=document.getElementById('chatThread');
   const th=messages[key]?messages[key].thread:[];
   box.innerHTML = th.length===0
-    ? `<p style="color:var(--ink-soft);font-size:13px;text-align:center;padding:16px 0;">Aucun message. Écrivez-nous !</p>`
+    ? `<p style="color:var(--ink-soft);font-size:13px;text-align:center;padding:16px 0;">${t('noMessagesWriteUs','Aucun message. Écrivez-nous !')}</p>`
     : th.map(m=>`<div class="bubble ${m.from==='user'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
   box.scrollTop=box.scrollHeight;
 }
@@ -2477,10 +2487,10 @@ function renderOrderCard(o){
     if(ordersRole==='gp' && ['accepted','paid','picked_up'].includes(o.status) && hUntilTrip!==null){
       const hLeft=hUntilTrip-48;
       if(hLeft>0){
-        countdown=`<div class="countdown" style="background:var(--gold-soft);color:var(--gold-soft-ink);">⏳ Annulation possible encore ${Math.floor(hLeft)}h</div>`;
+        countdown=`<div class="countdown" style="background:var(--gold-soft);color:var(--gold-soft-ink);">${t('cancelPossibleFor','⏳ Annulation possible encore {h}h').replace('{h}',Math.floor(hLeft))}</div>`;
       }else if(o.acceptedAt){
         const minLeft=30-(Date.now()-o.acceptedAt)/60000;
-        if(minLeft>0) countdown=`<div class="countdown" style="background:var(--gold-soft);color:var(--gold-soft-ink);">⏳ Trajet à moins de 48h : encore ${Math.ceil(minLeft)} min pour annuler sans condition</div>`;
+        if(minLeft>0) countdown=`<div class="countdown" style="background:var(--gold-soft);color:var(--gold-soft-ink);">${t('cancelMinutesLeft','⏳ Trajet à moins de 48h : encore {min} min pour annuler sans condition').replace('{min}',Math.ceil(minLeft))}</div>`;
       }
     }
     return `
@@ -2922,7 +2932,7 @@ function renderOrderChat(orderId){
   if(!box) return;
   const th=orderMsgs[orderId]||[];
   box.innerHTML = th.length===0
-    ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">Aucun message.</p>`
+    ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">${t('noMessages','Aucun message.')}</p>`
     : th.map(m=>`<div class="bubble ${m.from===ordersRole?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
   box.scrollTop=box.scrollHeight;
 }
@@ -2942,7 +2952,7 @@ function renderRecipientChat(orderId){
   if(!box) return;
   const th=orderMsgs[orderId+'_recipient']||[];
   box.innerHTML = th.length===0
-    ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">Aucun message.</p>`
+    ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">${t('noMessages','Aucun message.')}</p>`
     : th.map(m=>`<div class="bubble ${m.from===ordersRole?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
   box.scrollTop=box.scrollHeight;
 }
@@ -3364,7 +3374,7 @@ async function loadReceiveChat(orderId){
     const snap=await withTimeout(db.collection('orderMsgs').doc(orderId+'_recipient').get(), 8000);
     const thread=(snap.exists && snap.data().thread) || [];
     el.innerHTML = thread.length===0
-      ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:6px 0;">Aucun message.</p>`
+      ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:6px 0;">${t('noMessages','Aucun message.')}</p>`
       : thread.map(m=>`<div class="bubble ${m.from==='recipient'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
     el.scrollTop = el.scrollHeight;
   }catch(e){}
