@@ -380,81 +380,81 @@
   <!-- SEND (colis sans GP précis) -->
   <div id="viewSend" style="display:none;">
     <div class="panel">
-      <h2>Décrivez votre colis</h2>
-      <div class="sub">Pas encore trouvé de voyageur ? Décrivez votre besoin, nous vous alertons dès qu'un GP correspond.</div>
-      <label>Votre prénom</label><input type="text" id="sName" placeholder="Ex. Fatou" readonly style="background:var(--bg);color:var(--ink-soft);">
-      <label>Votre numéro</label><input type="tel" id="sPhone" placeholder="Ex. 06 12 34 56 78" readonly style="background:var(--bg);color:var(--ink-soft);">
+      <h2 data-i18n="sendTitle">Décrivez votre colis</h2>
+      <div class="sub" data-i18n="sendSub">Pas encore trouvé de voyageur ? Décrivez votre besoin, nous vous alertons dès qu'un GP correspond.</div>
+      <label data-i18n="labelFirstName">Votre prénom</label><input type="text" id="sName" data-i18n-ph="phNameExample" placeholder="Ex. Fatou" readonly style="background:var(--bg);color:var(--ink-soft);">
+      <label data-i18n="labelPhoneField">Votre numéro</label><input type="tel" id="sPhone" data-i18n-ph="phPhoneExample" placeholder="Ex. 06 12 34 56 78" readonly style="background:var(--bg);color:var(--ink-soft);">
       <div class="row2">
-        <div><label>Ville de départ</label><input type="text" id="sFrom" list="fromCities" placeholder="Paris"></div>
-        <div><label>Ville d'arrivée</label><input type="text" id="sTo" list="toCities" oninput="autoSetCountry('sTo','sCountry')" placeholder="Nouakchott"></div>
+        <div><label data-i18n="labelFrom">Ville de départ</label><input type="text" id="sFrom" list="fromCities" placeholder="Paris"></div>
+        <div><label data-i18n="labelTo">Ville d'arrivée</label><input type="text" id="sTo" list="toCities" oninput="autoSetCountry('sTo','sCountry')" placeholder="Nouakchott"></div>
       </div>
-      <label>Pays de destination</label>
+      <label data-i18n="labelDestCountry">Pays de destination</label>
       <select id="sCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="Arabie Saoudite">🇸🇦 Arabie Saoudite</option><option value="France">🇫🇷 France</option></select>
-      <label>Nom du destinataire</label><input type="text" id="sRecipient" placeholder="Ex. Mariam (qui récupère le colis à l'arrivée)">
-      <div class="hint">Pour que le voyageur sache à qui remettre le colis. Son numéro reste privé, comme le vôtre. Conseil : écrivez vos deux prénoms sur le colis, avec votre identifiant Baraka GP (visible dans « Mes points ») plutôt que votre numéro.</div>
-      <label>Date d'envoi souhaitée</label><input type="date" id="sDate">
-      <label>Poids approximatif</label><input type="number" id="sKg" placeholder="Ex. 5" min="1">
-      <label>Description du contenu</label><textarea id="sDesc" placeholder="Ex. Vêtements et quelques cadeaux"></textarea>
-      <label>Photo du colis</label><input type="file" id="sPhoto" accept="image/*">
+      <label data-i18n="labelRecipientName">Nom du destinataire</label><input type="text" id="sRecipient" data-i18n-ph="phRecipientExample" placeholder="Ex. Mariam (qui récupère le colis à l'arrivée)">
+      <div class="hint" data-i18n="hintRecipient">Pour que le voyageur sache à qui remettre le colis. Son numéro reste privé, comme le vôtre. Conseil : écrivez vos deux prénoms sur le colis, avec votre identifiant Baraka GP (visible dans « Mes points ») plutôt que votre numéro.</div>
+      <label data-i18n="labelSendDate">Date d'envoi souhaitée</label><input type="date" id="sDate">
+      <label data-i18n="labelApproxWeight">Poids approximatif</label><input type="number" id="sKg" data-i18n-ph="phKgExample" placeholder="Ex. 5" min="1">
+      <label data-i18n="labelContentDesc">Description du contenu</label><textarea id="sDesc" data-i18n-ph="phContentExample" placeholder="Ex. Vêtements et quelques cadeaux"></textarea>
+      <label data-i18n="labelPackagePhoto">Photo du colis</label><input type="file" id="sPhoto" accept="image/*">
       <div class="rules-box">
-        <div class="rules-title"><svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Objets strictement interdits</div>
-        <p style="font-size:13px;margin:0;color:var(--ink);">Espèces, document officiel d'un tiers, bijou non déclaré, produit illicite.</p>
+        <div class="rules-title" data-i18n="forbiddenTitle"><svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Objets strictement interdits</div>
+        <p style="font-size:13px;margin:0;color:var(--ink);" data-i18n="forbiddenDesc">Espèces, document officiel d'un tiers, bijou non déclaré, produit illicite.</p>
       </div>
       <div class="rules-box" style="background:var(--green-pale);">
-        <label class="check-line"><input type="checkbox" id="sAcceptAll"> Je confirme ne transporter aucun de ces objets.</label>
+        <label class="check-line"><input type="checkbox" id="sAcceptAll"> <span data-i18n="confirmNoForbidden">Je confirme ne transporter aucun de ces objets.</span></label>
       </div>
-      <button class="btn gold" onclick="publishColis()">Envoyer ma demande</button>
+      <button class="btn gold" data-i18n="sendMyRequest" onclick="publishColis()">Envoyer ma demande</button>
     </div>
   </div>
 
   <!-- PUBLISH GP -->
   <div id="viewPublish" style="display:none;">
     <div class="panel">
-      <h2>Publiez votre trajet</h2>
-      <div class="sub">Vous voyagez bientôt ? Gagnez de l'argent avec la place libre dans votre valise.</div>
-      <label>Votre prénom</label><input type="text" id="pName" placeholder="Ex. Amadou" readonly style="background:var(--bg);color:var(--ink-soft);">
-      <label>Votre numéro</label><input type="tel" id="pPhone" placeholder="Ex. 06 12 34 56 78" readonly style="background:var(--bg);color:var(--ink-soft);">
+      <h2 data-i18n="publishTitle">Publiez votre trajet</h2>
+      <div class="sub" data-i18n="publishSub">Vous voyagez bientôt ? Gagnez de l'argent avec la place libre dans votre valise.</div>
+      <label data-i18n="labelFirstName">Votre prénom</label><input type="text" id="pName" data-i18n-ph="phNameExample" placeholder="Ex. Amadou" readonly style="background:var(--bg);color:var(--ink-soft);">
+      <label data-i18n="labelPhoneField">Votre numéro</label><input type="tel" id="pPhone" data-i18n-ph="phPhoneExample" placeholder="Ex. 06 12 34 56 78" readonly style="background:var(--bg);color:var(--ink-soft);">
       <div id="profileStatusBox"></div>
-      <label>Billet pour ce voyage</label><input type="file" id="pTicket" accept="image/*,.pdf">
-      <div class="hint">À fournir à chaque trajet.</div>
+      <label data-i18n="labelTicket">Billet pour ce voyage</label><input type="file" id="pTicket" accept="image/*,.pdf">
+      <div class="hint" data-i18n="hintEachTrip">À fournir à chaque trajet.</div>
       <div id="docsSection">
-        <label>Photo de profil</label><input type="file" id="pAvatar" accept="image/*">
-        <div class="hint">Visible sur vos annonces, inspire confiance.</div>
-        <label>Type de document</label>
+        <label data-i18n="labelProfilePhoto">Photo de profil</label><input type="file" id="pAvatar" accept="image/*">
+        <div class="hint" data-i18n="hintProfilePhoto">Visible sur vos annonces, inspire confiance.</div>
+        <label data-i18n="labelDocType">Type de document</label>
         <select id="pIdType">
-          <option value="Carte d'identité">Carte d'identité</option>
-          <option value="Passeport">Passeport</option>
-          <option value="Titre de séjour">Titre de séjour</option>
+          <option value="Carte d'identité" data-i18n="optIdCard">Carte d'identité</option>
+          <option value="Passeport" data-i18n="optPassport">Passeport</option>
+          <option value="Titre de séjour" data-i18n="optResidencePermit">Titre de séjour</option>
         </select>
-        <label>Pièce d'identité</label><input type="file" id="pId" accept="image/*">
-        <div class="hint">Une seule fois.</div>
+        <label data-i18n="labelIdDoc">Pièce d'identité</label><input type="file" id="pId" accept="image/*">
+        <div class="hint" data-i18n="hintOnce">Une seule fois.</div>
       </div>
       <div class="row2">
-        <div><label>Ville de départ</label><input type="text" id="pFrom" list="fromCities" placeholder="Paris"></div>
-        <div><label>Ville d'arrivée</label><input type="text" id="pTo" list="toCities" oninput="autoSetCountry('pTo','pCountry')" placeholder="Nouakchott"></div>
+        <div><label data-i18n="labelFrom">Ville de départ</label><input type="text" id="pFrom" list="fromCities" placeholder="Paris"></div>
+        <div><label data-i18n="labelTo">Ville d'arrivée</label><input type="text" id="pTo" list="toCities" oninput="autoSetCountry('pTo','pCountry')" placeholder="Nouakchott"></div>
       </div>
-      <label>Pays de destination</label>
+      <label data-i18n="labelDestCountry">Pays de destination</label>
       <select id="pCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="Arabie Saoudite">🇸🇦 Arabie Saoudite</option><option value="France">🇫🇷 France</option></select>
-      <label>Date de départ</label><input type="date" id="pDate" required>
-      <label>Date et heure d'arrivée estimée</label><input type="datetime-local" id="pArrival">
-      <div class="hint">Utilisée pour savoir à partir de quand le destinataire peut confirmer la réception.</div>
-      <label>Kg disponibles</label><input type="number" id="pKg" placeholder="Ex. 8" min="1">
+      <label data-i18n="labelDepartDate">Date de départ</label><input type="date" id="pDate" required>
+      <label data-i18n="labelArrivalDateTime">Date et heure d'arrivée estimée</label><input type="datetime-local" id="pArrival">
+      <div class="hint" data-i18n="hintArrival">Utilisée pour savoir à partir de quand le destinataire peut confirmer la réception.</div>
+      <label data-i18n="labelAvailKg">Kg disponibles</label><input type="number" id="pKg" data-i18n-ph="phKgPublishExample" placeholder="Ex. 8" min="1">
       <div class="rules-box">
-        <div class="rules-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.79 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></svg>Engagement du voyageur</div>
-        <p style="font-size:13px;margin:0;color:var(--ink);">Je transporte uniquement des colis vérifiés sans les ouvrir, et je confirme la remise au destinataire.</p>
+        <div class="rules-title" data-i18n="commitmentTitle"><svg class="icon" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.79 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></svg>Engagement du voyageur</div>
+        <p style="font-size:13px;margin:0;color:var(--ink);" data-i18n="commitmentDesc">Je transporte uniquement des colis vérifiés sans les ouvrir, et je confirme la remise au destinataire.</p>
       </div>
       <div class="rules-box" style="background:var(--green-pale);">
-        <label class="check-line"><input type="checkbox" id="pAcceptAll"> Je m'engage à respecter ces règles, je certifie que mon billet et mon identité sont exacts, et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</label>
+        <label class="check-line"><input type="checkbox" id="pAcceptAll"> <span data-i18n="commitmentAccept">Je m'engage à respecter ces règles, je certifie que mon billet et mon identité sont exacts, et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</span></label>
       </div>
-      <button class="btn gold" onclick="publishListing()">Publier mon trajet</button>
+      <button class="btn gold" data-i18n="publishMyTrip" onclick="publishListing()">Publier mon trajet</button>
     </div>
   </div>
 
   <!-- MY TRIPS (voyageurs) -->
   <div id="viewMytrips" style="display:none;">
     <div class="role-toggle">
-      <div class="active" id="mytripsTabTrips" onclick="switchMytripsSub('trips')">Mes trajets publiés</div>
-      <div id="mytripsTabColis" onclick="switchMytripsSub('colis')">Demandes disponibles</div>
+      <div class="active" id="mytripsTabTrips" data-i18n="tabMyPublishedTrips" onclick="switchMytripsSub('trips')">Mes trajets publiés</div>
+      <div id="mytripsTabColis" data-i18n="tabAvailableRequests" onclick="switchMytripsSub('colis')">Demandes disponibles</div>
     </div>
     <div id="mytripsSectionTrips">
       <div id="myTripsList"></div>
@@ -466,18 +466,18 @@
 
   <!-- MY REQUESTS (clients) -->
   <div id="viewMydemandes" style="display:none;">
-    <div class="results-head"><h3>Mes demandes de colis</h3></div>
+    <div class="results-head"><h3 data-i18n="myColisRequestsHeading">Mes demandes de colis</h3></div>
     <div id="myColisList"></div>
-    <div class="results-head"><h3>Mes alertes</h3></div>
+    <div class="results-head"><h3 data-i18n="myAlertsHeading">Mes alertes</h3></div>
     <div id="myAlertsList"></div>
   </div>
 
   <!-- ORDERS -->
   <div id="viewOrders" style="display:none;">
     <div class="role-toggle">
-      <div class="active" id="roleClient" onclick="switchRole('client')">Mes envois <span class="drawer-badge" id="badgeRoleClient" style="display:none;">0</span></div>
-      <div id="roleGp" onclick="switchRole('gp')">Commandes reçues (GP) <span class="drawer-badge" id="badgeRoleGp" style="display:none;">0</span></div>
-      <div id="roleCompleted" onclick="switchRole('completed')">Historique</div>
+      <div class="active" id="roleClient" data-i18n="tabMySends" onclick="switchRole('client')">Mes envois <span class="drawer-badge" id="badgeRoleClient" style="display:none;">0</span></div>
+      <div id="roleGp" data-i18n="tabReceivedOrders" onclick="switchRole('gp')">Commandes reçues (GP) <span class="drawer-badge" id="badgeRoleGp" style="display:none;">0</span></div>
+      <div id="roleCompleted" data-i18n="tabHistory" onclick="switchRole('completed')">Historique</div>
     </div>
     <div id="ordersList"></div>
   </div>
@@ -495,12 +495,12 @@
   <!-- MESSAGES (support) -->
   <div id="viewMessages" style="display:none;">
     <div class="panel">
-      <h2>Support Baraka GP</h2>
-      <div class="sub">Une question, un souci ? Écrivez-nous ici.</div>
+      <h2 data-i18n="supportTitle">Support Baraka GP</h2>
+      <div class="sub" data-i18n="supportSub">Une question, un souci ? Écrivez-nous ici.</div>
       <div class="chat-thread" id="chatThread"></div>
       <div class="chat-input">
-        <textarea id="chatInput" placeholder="Écrivez votre message..."></textarea>
-        <button class="btn" style="margin-top:0;" onclick="sendUserMessage()">Envoyer</button>
+        <textarea id="chatInput" data-i18n-ph="phChatMessage" placeholder="Écrivez votre message..."></textarea>
+        <button class="btn" style="margin-top:0;" data-i18n="btnSend" onclick="sendUserMessage()">Envoyer</button>
       </div>
     </div>
   </div>
@@ -834,6 +834,29 @@ const I18N = {
     publishMyRequest:'📢 Publish my request', dispoLabel:'available', travelerDefault:'Traveler',
     verifiedBadge:'Verified traveler', pendingVerifBadge:'Verification in progress',
     chooseTraveler:'Choose this traveler', arrivalEstimate:'Estimated arrival',
+    sendTitle:'Describe your package', sendSub:"Haven't found a traveler yet? Describe what you need, we'll alert you as soon as a match appears.",
+    labelFirstName:'Your first name', labelPhoneField:'Your number', phPhoneExample:'E.g. 06 12 34 56 78', phNameExample:'E.g. Fatou',
+    labelDestCountry:'Destination country', labelRecipientName:'Recipient name', phRecipientExample:'E.g. Mariam (who collects the package on arrival)',
+    hintRecipient:"So the traveler knows who to hand the package to. Their number stays private, like yours. Tip: write both your first names on the package, with your Baraka GP ID (visible in «My points») rather than your phone number.",
+    labelSendDate:'Desired sending date', labelApproxWeight:'Approximate weight', phKgExample:'E.g. 5',
+    labelContentDesc:'Content description', phContentExample:'E.g. Clothes and a few gifts', labelPackagePhoto:'Package photo',
+    forbiddenTitle:'Strictly forbidden items', forbiddenDesc:'Cash, a third party’s official document, undeclared jewelry, illicit goods.',
+    confirmNoForbidden:"I confirm I'm not carrying any of these items.", sendMyRequest:'Send my request',
+    publishTitle:'Publish your trip', publishSub:'Traveling soon? Earn money with the free space in your luggage.',
+    labelTicket:'Ticket for this trip', hintEachTrip:'Required for each trip.',
+    labelProfilePhoto:'Profile photo', hintProfilePhoto:'Visible on your listings, builds trust.',
+    labelDocType:'Document type', optIdCard:'ID card', optPassport:'Passport', optResidencePermit:'Residence permit',
+    labelIdDoc:'ID document', hintOnce:'Only once.',
+    labelDepartDate:'Departure date', labelArrivalDateTime:'Estimated arrival date and time',
+    hintArrival:'Used to know from when the recipient can confirm receipt.',
+    labelAvailKg:'Available kg', phKgPublishExample:'E.g. 8',
+    commitmentTitle:'Traveler commitment', commitmentDesc:'I only carry verified packages without opening them, and I confirm handover to the recipient.',
+    commitmentAccept:"I commit to following these rules, I certify my ticket and identity are accurate, and I accept that Baraka GP acts only as an intermediary, with no responsibility for the transport itself.",
+    publishMyTrip:'Publish my trip',
+    tabMyPublishedTrips:'My published trips', tabAvailableRequests:'Available requests',
+    myColisRequestsHeading:'My package requests', myAlertsHeading:'My alerts',
+    tabMySends:'My shipments', tabReceivedOrders:'Received orders (traveler)', tabHistory:'History',
+    supportTitle:'Baraka GP support', supportSub:'A question, an issue? Write to us here.', phChatMessage:'Write your message...', btnSend:'Send',
   },
   ar: {
     bnSearch:'بحث', bnSend:'إرسال', bnPublish:'سافر', bnOrders:'التتبع', bnMore:'المزيد',
@@ -867,6 +890,29 @@ const I18N = {
     publishMyRequest:'📢 نشر طلبي', dispoLabel:'متاح', travelerDefault:'مسافر',
     verifiedBadge:'مسافر موثّق', pendingVerifBadge:'التحقق جارٍ',
     chooseTraveler:'اختيار هذا المسافر', arrivalEstimate:'الوصول المقدر',
+    sendTitle:'صف طردك', sendSub:'لم تجد مسافرًا بعد؟ صف احتياجك، وسننبهك فور توفر مسافر مناسب.',
+    labelFirstName:'اسمك الأول', labelPhoneField:'رقمك', phPhoneExample:'مثال: 06 12 34 56 78', phNameExample:'مثال: فاطمة',
+    labelDestCountry:'بلد الوجهة', labelRecipientName:'اسم المستلم', phRecipientExample:'مثال: مريم (التي تستلم الطرد عند الوصول)',
+    hintRecipient:'ليعرف المسافر لمن يسلّم الطرد. يبقى رقمه خاصًا، كرقمك. نصيحة: اكتب اسميكما الأولين على الطرد، مع معرّف Baraka GP الخاص بك (ظاهر في «نقاطي») بدلاً من رقم هاتفك.',
+    labelSendDate:'تاريخ الإرسال المطلوب', labelApproxWeight:'الوزن التقريبي', phKgExample:'مثال: 5',
+    labelContentDesc:'وصف المحتوى', phContentExample:'مثال: ملابس وبعض الهدايا', labelPackagePhoto:'صورة الطرد',
+    forbiddenTitle:'أغراض ممنوعة منعًا باتًا', forbiddenDesc:'النقود، وثيقة رسمية لطرف ثالث، مجوهرات غير مصرح بها، سلع غير مشروعة.',
+    confirmNoForbidden:'أؤكد أنني لا أحمل أيًا من هذه الأغراض.', sendMyRequest:'إرسال طلبي',
+    publishTitle:'انشر رحلتك', publishSub:'تسافر قريبًا؟ اربح مالًا من المساحة الفارغة في حقيبتك.',
+    labelTicket:'تذكرة هذه الرحلة', hintEachTrip:'مطلوبة في كل رحلة.',
+    labelProfilePhoto:'صورة الملف الشخصي', hintProfilePhoto:'تظهر في إعلاناتك، تبعث على الثقة.',
+    labelDocType:'نوع الوثيقة', optIdCard:'بطاقة الهوية', optPassport:'جواز السفر', optResidencePermit:'تصريح الإقامة',
+    labelIdDoc:'وثيقة الهوية', hintOnce:'مرة واحدة فقط.',
+    labelDepartDate:'تاريخ المغادرة', labelArrivalDateTime:'تاريخ ووقت الوصول المقدر',
+    hintArrival:'تُستخدم لمعرفة متى يمكن للمستلم تأكيد الاستلام.',
+    labelAvailKg:'الكيلوغرامات المتاحة', phKgPublishExample:'مثال: 8',
+    commitmentTitle:'التزام المسافر', commitmentDesc:'أنقل فقط طرودًا تم التحقق منها دون فتحها، وأؤكد تسليمها للمستلم.',
+    commitmentAccept:'ألتزم باحترام هذه القواعد، وأشهد أن تذكرتي وهويتي صحيحتان، وأوافق على أن Baraka GP يعمل فقط كوسيط، دون مسؤولية عن عملية النقل نفسها.',
+    publishMyTrip:'نشر رحلتي',
+    tabMyPublishedTrips:'رحلاتي المنشورة', tabAvailableRequests:'الطلبات المتاحة',
+    myColisRequestsHeading:'طلبات طرودي', myAlertsHeading:'تنبيهاتي',
+    tabMySends:'إرسالياتي', tabReceivedOrders:'الطلبات المستلمة (مسافر)', tabHistory:'السجل',
+    supportTitle:'دعم Baraka GP', supportSub:'سؤال أو مشكلة؟ راسلنا هنا.', phChatMessage:'اكتب رسالتك...', btnSend:'إرسال',
   },
 };
 let currentLang='fr';
