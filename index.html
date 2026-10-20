@@ -53,6 +53,10 @@
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  /* Arabe (RTL) : base minimale, affinée au fur et à mesure des écrans traduits */
+  [dir="rtl"] body{text-align:right;}
+  [dir="rtl"] .wizard-back{transform:scaleX(-1);}
+  [dir="rtl"] .password-toggle{right:auto;left:2px;}
   h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
   .wrap{max-width:720px;margin:0 auto;padding:20px 20px calc(84px + env(safe-area-inset-bottom));}
 
@@ -126,6 +130,8 @@
   .btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink);}
   .btn.sm{margin-top:8px;padding:9px;font-size:13px;}
   .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn.lang-opt{background:transparent;border:1.5px solid var(--line);color:var(--ink-soft);margin-top:0;}
+  .btn.lang-opt.active{background:var(--green);border-color:var(--green);color:#fff;}
 
   .results-head{display:flex;justify-content:space-between;align-items:baseline;margin:20px 2px 10px;}
   .results-head h3{font-size:15.5px;} .results-head span{font-size:12.5px;color:var(--ink-soft);}
@@ -309,16 +315,16 @@
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
   <input type="file" id="changeAvatarInput" accept="image/*" style="display:none;" onchange="changeMyAvatar()">
-  <div class="drawer-item active" id="tabSearch" onclick="switchTab('search')" style="display:none;"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Chercher un GP</div>
-  <div class="drawer-item" id="tabSend" onclick="switchTab('send')" style="display:none;"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>Envoyer un colis</div>
-  <div class="drawer-item" id="tabMydemandes" onclick="switchTab('mydemandes')"><svg class="icon" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>Mes demandes</div>
-  <div class="drawer-item" id="tabPublish" onclick="switchTab('publish')" style="display:none;"><svg class="icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>Je voyage</div>
-  <div class="drawer-item" id="tabMytrips" onclick="switchTab('mytrips')"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Mes trajets</div>
-  <div class="drawer-item" id="tabOrders" onclick="switchTab('orders')" style="display:none;"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Mes commandes <span class="drawer-badge" id="badgeOrders" style="display:none;">0</span></div>
-  <div class="drawer-item" id="tabPoints" onclick="switchTab('points')"><svg class="icon" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z"/></svg>Mes points</div>
-  <div class="drawer-item" id="tabBalance" onclick="switchTab('balance')"><svg class="icon" viewBox="0 0 24 24"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M3 9h18"/><circle cx="16" cy="14" r="1"/></svg>Mon solde</div>
-  <div class="drawer-item" id="tabMessages" onclick="switchTab('messages')"><svg class="icon" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Support <span class="drawer-badge" id="badgeMessages" style="display:none;">0</span></div>
-  <div class="drawer-item" onclick="closeDrawer();openSettings();"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Paramètres</div>
+  <div class="drawer-item active" id="tabSearch" data-i18n="drawerSearch" onclick="switchTab('search')" style="display:none;"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Chercher un GP</div>
+  <div class="drawer-item" id="tabSend" data-i18n="drawerSend" onclick="switchTab('send')" style="display:none;"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>Envoyer un colis</div>
+  <div class="drawer-item" id="tabMydemandes" data-i18n="drawerMydemandes" onclick="switchTab('mydemandes')"><svg class="icon" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>Mes demandes</div>
+  <div class="drawer-item" id="tabPublish" data-i18n="drawerPublish" onclick="switchTab('publish')" style="display:none;"><svg class="icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>Je voyage</div>
+  <div class="drawer-item" id="tabMytrips" data-i18n="drawerMytrips" onclick="switchTab('mytrips')"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Mes trajets</div>
+  <div class="drawer-item" id="tabOrders" data-i18n="drawerOrders" onclick="switchTab('orders')" style="display:none;"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Mes commandes <span class="drawer-badge" id="badgeOrders" style="display:none;">0</span></div>
+  <div class="drawer-item" id="tabPoints" data-i18n="drawerPoints" onclick="switchTab('points')"><svg class="icon" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z"/></svg>Mes points</div>
+  <div class="drawer-item" id="tabBalance" data-i18n="drawerBalance" onclick="switchTab('balance')"><svg class="icon" viewBox="0 0 24 24"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M3 9h18"/><circle cx="16" cy="14" r="1"/></svg>Mon solde</div>
+  <div class="drawer-item" id="tabMessages" data-i18n="drawerMessages" onclick="switchTab('messages')"><svg class="icon" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>Support <span class="drawer-badge" id="badgeMessages" style="display:none;">0</span></div>
+  <div class="drawer-item" data-i18n="drawerSettings" onclick="closeDrawer();openSettings();"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Paramètres</div>
 </nav>
 
 <div class="wrap">
@@ -551,21 +557,29 @@
 <!-- EDIT TRIP MODAL -->
 <div class="overlay" id="settingsOverlay">
   <div class="modal">
-    <h3><svg class="icon" viewBox="0 0 24 24" style="margin-right:8px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Paramètres</h3>
-    <div class="drawer-item static" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:14px;">
-      <span style="display:flex;align-items:center;gap:10px;"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Localisation</span>
-      <button class="btn" style="width:auto;margin:0;padding:7px 14px;font-size:12.5px;" onclick="requestLocationAccess()">Activer</button>
+    <h3 data-i18n="settingsTitle"><svg class="icon" viewBox="0 0 24 24" style="margin-right:8px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Paramètres</h3>
+    <div class="drawer-item static" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:14px;flex-direction:column;align-items:stretch;gap:8px;">
+      <span data-i18n="settingsLanguage" style="display:flex;align-items:center;gap:10px;"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"/></svg>Langue</span>
+      <div style="display:flex;gap:6px;">
+        <button type="button" class="btn lang-opt" data-lang="fr" onclick="applyLanguage('fr')" style="width:auto;flex:1;margin:0;padding:7px 10px;font-size:12.5px;">Français</button>
+        <button type="button" class="btn lang-opt" data-lang="en" onclick="applyLanguage('en')" style="width:auto;flex:1;margin:0;padding:7px 10px;font-size:12.5px;">English</button>
+        <button type="button" class="btn lang-opt" data-lang="ar" onclick="applyLanguage('ar')" style="width:auto;flex:1;margin:0;padding:7px 10px;font-size:12.5px;">العربية</button>
+      </div>
     </div>
     <div class="drawer-item static" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px;">
-      <span style="display:flex;align-items:center;gap:10px;"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>Mode sombre</span>
+      <span data-i18n="settingsLocation" style="display:flex;align-items:center;gap:10px;"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Localisation</span>
+      <button class="btn" data-i18n="settingsActivate" style="width:auto;margin:0;padding:7px 14px;font-size:12.5px;" onclick="requestLocationAccess()">Activer</button>
+    </div>
+    <div class="drawer-item static" style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px;">
+      <span data-i18n="settingsDarkMode" style="display:flex;align-items:center;gap:10px;"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>Mode sombre</span>
       <label class="switch">
         <input type="checkbox" id="darkModeToggle" onchange="setDarkMode(this.checked)">
         <span class="switch-slider"></span>
       </label>
     </div>
-    <button class="btn red" style="margin-top:18px;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="closeSettings();authSignOut();"><svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Se déconnecter</button>
-    <button class="btn ghost" style="color:var(--red);display:flex;align-items:center;justify-content:center;gap:8px;" onclick="deleteMyAccount()"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>Supprimer mon compte</button>
-    <button class="btn ghost" onclick="closeSettings()">Fermer</button>
+    <button class="btn red" data-i18n="settingsLogout" style="margin-top:18px;display:flex;align-items:center;justify-content:center;gap:8px;" onclick="closeSettings();authSignOut();"><svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Se déconnecter</button>
+    <button class="btn ghost" data-i18n="settingsDeleteAccount" style="color:var(--red);display:flex;align-items:center;justify-content:center;gap:8px;" onclick="deleteMyAccount()"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>Supprimer mon compte</button>
+    <button class="btn ghost" data-i18n="settingsClose" onclick="closeSettings()">Fermer</button>
   </div>
 </div>
 
@@ -638,20 +652,20 @@
 <div class="overlay show" id="authGate">
   <div class="modal center" id="authLoginView" style="display:none;">
     <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
-    <h3>Connexion</h3>
-    <p>Contente de vous revoir !</p>
-    <input type="email" id="authEmail" placeholder="Votre email" autocomplete="username">
+    <h3 data-i18n="authLoginTitle">Connexion</h3>
+    <p data-i18n="authLoginSubtitle">Contente de vous revoir !</p>
+    <input type="email" id="authEmail" data-i18n-ph="authEmailPh" placeholder="Votre email" autocomplete="username">
     <div class="password-field">
-      <input type="password" id="authPassword" placeholder="Mot de passe" autocomplete="current-password">
+      <input type="password" id="authPassword" data-i18n-ph="authPasswordPh" placeholder="Mot de passe" autocomplete="current-password">
       <button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPassword', this)"><svg class="icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
     </div>
-    <button class="btn" id="authSubmitBtn" onclick="authSubmit()">Se connecter</button>
+    <button class="btn" id="authSubmitBtn" data-i18n="authLoginSubmit" onclick="authSubmit()">Se connecter</button>
     <p style="margin-top:6px;font-size:13px;">
-      <a href="javascript:void(0)" onclick="authForgotPassword()" style="color:var(--ink-soft);text-decoration:underline;">Mot de passe oublié ?</a>
+      <a href="javascript:void(0)" data-i18n="authForgotPassword" onclick="authForgotPassword()" style="color:var(--ink-soft);text-decoration:underline;">Mot de passe oublié ?</a>
     </p>
     <p style="margin-top:14px;font-size:13px;">
-      Pas encore de compte ?
-      <a href="javascript:void(0)" onclick="switchAuthMode()" style="color:var(--accent);font-weight:600;text-decoration:underline;">S'inscrire</a>
+      <span data-i18n="authNoAccount">Pas encore de compte ?</span>
+      <a href="javascript:void(0)" data-i18n="authSignupLink" onclick="switchAuthMode()" style="color:var(--accent);font-weight:600;text-decoration:underline;">S'inscrire</a>
     </p>
   </div>
 
@@ -661,17 +675,17 @@
 
       <div class="wizard-step active" id="wizStep1">
         <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-        <div class="wizard-progress">Étape 1 sur 4</div>
-        <div class="wizard-title">Quel est votre prénom ?</div>
-        <p class="wizard-desc">Pour qu'on sache comment vous appeler.</p>
-        <input type="text" id="authName" placeholder="Votre prénom">
+        <div class="wizard-progress" data-i18n="wizStep1of4">Étape 1 sur 4</div>
+        <div class="wizard-title" data-i18n="wizNameTitle">Quel est votre prénom ?</div>
+        <p class="wizard-desc" data-i18n="wizNameDesc">Pour qu'on sache comment vous appeler.</p>
+        <input type="text" id="authName" data-i18n-ph="authNamePh" placeholder="Votre prénom">
       </div>
 
       <div class="wizard-step" id="wizStep2">
         <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
-        <div class="wizard-progress">Étape 2 sur 4</div>
-        <div class="wizard-title">Entrez votre numéro de téléphone</div>
-        <p class="wizard-desc">Nous vous enverrons un code par SMS pour le vérifier.</p>
+        <div class="wizard-progress" data-i18n="wizStep2of4">Étape 2 sur 4</div>
+        <div class="wizard-title" data-i18n="wizPhoneTitle">Entrez votre numéro de téléphone</div>
+        <p class="wizard-desc" data-i18n="wizPhoneDesc">Nous vous enverrons un code par SMS pour le vérifier.</p>
         <div style="display:flex;gap:8px;">
           <select id="authCountryCode" style="width:auto;flex:0 0 108px;">
             <option value="+33">🇫🇷 +33</option>
@@ -681,25 +695,25 @@
             <option value="+20">🇪🇬 +20</option>
             <option value="+966">🇸🇦 +966</option>
           </select>
-          <input type="tel" id="authPhone" placeholder="Votre numéro" style="flex:1;">
+          <input type="tel" id="authPhone" data-i18n-ph="authPhonePh" placeholder="Votre numéro" style="flex:1;">
         </div>
       </div>
 
       <div class="wizard-step" id="wizStep3">
         <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
-        <div class="wizard-progress">Étape 3 sur 4</div>
-        <div class="wizard-title">Quel est votre email ?</div>
-        <p class="wizard-desc">Il vous servira à vous connecter.</p>
-        <input type="email" id="authEmailSignup" placeholder="Votre email" autocomplete="username">
+        <div class="wizard-progress" data-i18n="wizStep3of4">Étape 3 sur 4</div>
+        <div class="wizard-title" data-i18n="wizEmailTitle">Quel est votre email ?</div>
+        <p class="wizard-desc" data-i18n="wizEmailDesc">Il vous servira à vous connecter.</p>
+        <input type="email" id="authEmailSignup" data-i18n-ph="authEmailPh" placeholder="Votre email" autocomplete="username">
       </div>
 
       <div class="wizard-step" id="wizStep4">
         <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-        <div class="wizard-progress">Étape 4 sur 4</div>
-        <div class="wizard-title">Créez votre mot de passe</div>
-        <p class="wizard-desc">Au moins 6 caractères.</p>
+        <div class="wizard-progress" data-i18n="wizStep4of4">Étape 4 sur 4</div>
+        <div class="wizard-title" data-i18n="wizPasswordTitle">Créez votre mot de passe</div>
+        <p class="wizard-desc" data-i18n="wizPasswordDesc">Au moins 6 caractères.</p>
         <div class="password-field">
-          <input type="password" id="authPasswordSignup" placeholder="Mot de passe" autocomplete="new-password">
+          <input type="password" id="authPasswordSignup" data-i18n-ph="authPasswordPh" placeholder="Mot de passe" autocomplete="new-password">
           <button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPasswordSignup', this)"><svg class="icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
         <label id="authLegalNote" class="check-line" style="margin-top:14px;font-size:11.5px;color:var(--ink-soft);">
@@ -709,12 +723,12 @@
       </div>
     </div>
 
-    <button class="btn" id="wizardNextBtn" onclick="wizardNext()">Continuer</button>
-    <button class="btn" id="authSubmitBtnSignup" onclick="authSubmit()" style="display:none;">Créer mon compte</button>
+    <button class="btn" id="wizardNextBtn" data-i18n="wizContinue" onclick="wizardNext()">Continuer</button>
+    <button class="btn" id="authSubmitBtnSignup" data-i18n="wizCreateAccount" onclick="authSubmit()" style="display:none;">Créer mon compte</button>
 
     <p style="margin-top:14px;font-size:13px;text-align:center;">
-      Déjà un compte ?
-      <a href="javascript:void(0)" onclick="switchAuthMode()" style="color:var(--accent);font-weight:600;text-decoration:underline;">Se connecter</a>
+      <span data-i18n="authAlready">Déjà un compte ?</span>
+      <a href="javascript:void(0)" data-i18n="authLoginSubmit" onclick="switchAuthMode()" style="color:var(--accent);font-weight:600;text-decoration:underline;">Se connecter</a>
     </p>
   </div>
 </div>
@@ -723,13 +737,13 @@
 <div class="overlay" id="phoneVerifyOverlay">
   <div class="modal center">
     <div class="payment-lock" style="background:var(--green-pale);color:var(--green-pale-ink);">📱</div>
-    <h3>Vérification du numéro</h3>
+    <h3 data-i18n="phoneVerifyTitle">Vérification du numéro</h3>
     <p class="sub">Un code à 6 chiffres a été envoyé par SMS au <b id="phoneVerifyNumber"></b>.</p>
-    <input type="text" id="phoneVerifyCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Code à 6 chiffres" style="text-align:center;font-size:22px;letter-spacing:6px;">
-    <button class="btn gold" id="phoneVerifySubmitBtn" onclick="confirmPhoneCode()">Vérifier</button>
-    <button class="btn ghost" id="phoneVerifyResendBtn" onclick="resendPhoneCode()">Renvoyer le code</button>
+    <input type="text" id="phoneVerifyCode" data-i18n-ph="phoneVerifyPh" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Code à 6 chiffres" style="text-align:center;font-size:22px;letter-spacing:6px;">
+    <button class="btn gold" id="phoneVerifySubmitBtn" data-i18n="phoneVerifySubmit" onclick="confirmPhoneCode()">Vérifier</button>
+    <button class="btn ghost" id="phoneVerifyResendBtn" data-i18n="phoneVerifyResend" onclick="resendPhoneCode()">Renvoyer le code</button>
     <p style="margin-top:10px;font-size:12px;">
-      <a href="javascript:void(0)" onclick="cancelPhoneVerification()" style="color:var(--ink-soft);text-decoration:underline;">Numéro incorrect ? Recommencer</a>
+      <a href="javascript:void(0)" data-i18n="phoneVerifyWrongNumber" onclick="cancelPhoneVerification()" style="color:var(--ink-soft);text-decoration:underline;">Numéro incorrect ? Recommencer</a>
     </p>
   </div>
 </div>
@@ -739,20 +753,20 @@
 <div id="payoutSetupGate">
   <div class="wizard-body">
     <div class="wizard-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
-    <div class="wizard-title">Recevez vos paiements</div>
-    <p class="wizard-desc">Si vous transportez un colis un jour, remplissez vos informations de paiement (IBAN) ci-dessous pour pouvoir être payé. Vous pouvez aussi passer cette étape et le faire plus tard, depuis « Mon solde ».</p>
+    <div class="wizard-title" data-i18n="payoutSetupTitle">Recevez vos paiements</div>
+    <p class="wizard-desc" data-i18n="payoutSetupDesc">Si vous transportez un colis un jour, remplissez vos informations de paiement (IBAN) ci-dessous pour pouvoir être payé. Vous pouvez aussi passer cette étape et le faire plus tard, depuis « Mon solde ».</p>
     <div id="payoutOnboardingMount"><div class="search-spinner" style="margin:24px auto;"></div></div>
   </div>
-  <button class="btn ghost" onclick="document.getElementById('payoutSetupGate').classList.remove('show')">Fermer</button>
+  <button class="btn ghost" data-i18n="settingsClose" onclick="document.getElementById('payoutSetupGate').classList.remove('show')">Fermer</button>
 </div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottomNav">
-  <div class="bn-item active" id="bnSearch" onclick="switchTab('search')"><svg class="icon bn-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Chercher</div>
-  <div class="bn-item" id="bnSend" onclick="switchTab('send')"><svg class="icon bn-icon" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>Envoyer</div>
-  <div class="bn-item" id="bnPublish" onclick="switchTab('publish')"><svg class="icon bn-icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>Voyager</div>
-  <div class="bn-item" id="bnOrders" onclick="switchTab('orders')"><svg class="icon bn-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Suivi<span class="bn-badge" id="bnBadgeOrders" style="display:none;">0</span></div>
-  <div class="bn-item" id="bnMore" onclick="openDrawer()"><svg class="icon bn-icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" style="fill:currentColor;"/><circle cx="12" cy="12" r="1.5" style="fill:currentColor;"/><circle cx="19" cy="12" r="1.5" style="fill:currentColor;"/></svg>Plus<span class="bn-badge" id="bnBadgeMore" style="display:none;">0</span></div>
+  <div class="bn-item active" id="bnSearch" data-i18n="bnSearch" onclick="switchTab('search')"><svg class="icon bn-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Chercher</div>
+  <div class="bn-item" id="bnSend" data-i18n="bnSend" onclick="switchTab('send')"><svg class="icon bn-icon" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>Envoyer</div>
+  <div class="bn-item" id="bnPublish" data-i18n="bnPublish" onclick="switchTab('publish')"><svg class="icon bn-icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>Voyager</div>
+  <div class="bn-item" id="bnOrders" data-i18n="bnOrders" onclick="switchTab('orders')"><svg class="icon bn-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Suivi<span class="bn-badge" id="bnBadgeOrders" style="display:none;">0</span></div>
+  <div class="bn-item" id="bnMore" data-i18n="bnMore" onclick="openDrawer()"><svg class="icon bn-icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" style="fill:currentColor;"/><circle cx="12" cy="12" r="1.5" style="fill:currentColor;"/><circle cx="19" cy="12" r="1.5" style="fill:currentColor;"/></svg>Plus<span class="bn-badge" id="bnBadgeMore" style="display:none;">0</span></div>
 </nav>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -782,6 +796,98 @@ const ICON_EYE='<svg class="icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11
 const ICON_EYE_OFF='<svg class="icon" viewBox="0 0 24 24"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 8 11 8a9.26 9.26 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>';
 const PRICE_PER_KG = 12;
 const COMMISSION_PER_KG = 3;
+
+// --- Traduction (étape 1 : écrans principaux) -----------------------------
+// Le français reste la langue par défaut, écrite en dur dans le HTML ; les
+// dictionnaires ci-dessous ne couvrent que l'anglais et l'arabe. Si une clé
+// manque, le texte français d'origine reste affiché (jamais d'écran cassé).
+const I18N = {
+  en: {
+    bnSearch:'Search', bnSend:'Send', bnPublish:'Travel', bnOrders:'Tracking', bnMore:'More',
+    drawerDefaultMenu:'Menu', drawerSearch:'Find a traveler', drawerSend:'Send a package',
+    drawerMydemandes:'My requests', drawerPublish:"I'm traveling", drawerMytrips:'My trips',
+    drawerOrders:'My orders', drawerPoints:'My points', drawerBalance:'My balance',
+    drawerMessages:'Support', drawerSettings:'Settings',
+    settingsTitle:'Settings', settingsLocation:'Location', settingsActivate:'Enable',
+    settingsDarkMode:'Dark mode', settingsLanguage:'Language', settingsLogout:'Log out',
+    settingsDeleteAccount:'Delete my account', settingsClose:'Close',
+    authLoginTitle:'Log in', authLoginSubtitle:'Welcome back!', authEmailPh:'Your email',
+    authPasswordPh:'Password', authLoginSubmit:'Log in', authForgotPassword:'Forgot password?',
+    authNoAccount:'No account yet?', authSignupLink:'Sign up',
+    wizStep1of4:'Step 1 of 4', wizStep2of4:'Step 2 of 4', wizStep3of4:'Step 3 of 4', wizStep4of4:'Step 4 of 4',
+    wizNameTitle:"What's your first name?", wizNameDesc:'So we know what to call you.', authNamePh:'Your first name',
+    wizPhoneTitle:'Enter your phone number', wizPhoneDesc:"We'll send you an SMS code to verify it.", authPhonePh:'Your number',
+    wizEmailTitle:"What's your email?", wizEmailDesc:"You'll use it to log in.",
+    wizPasswordTitle:'Create your password', wizPasswordDesc:'At least 6 characters.',
+    wizContinue:'Continue', wizCreateAccount:'Create my account',
+    authAlready:'Already have an account?',
+    phoneVerifyTitle:'Number verification', phoneVerifyPh:'6-digit code', phoneVerifySubmit:'Verify',
+    phoneVerifyResend:'Resend code', phoneVerifyWrongNumber:'Wrong number? Start over',
+    payoutSetupTitle:'Receive your payments',
+    payoutSetupDesc:"If you carry a package one day, fill in your payment details (IBAN) below to get paid. You can also skip this step and do it later, from «My balance».",
+  },
+  ar: {
+    bnSearch:'بحث', bnSend:'إرسال', bnPublish:'سافر', bnOrders:'التتبع', bnMore:'المزيد',
+    drawerDefaultMenu:'القائمة', drawerSearch:'ابحث عن مسافر', drawerSend:'أرسل طردًا',
+    drawerMydemandes:'طلباتي', drawerPublish:'أنا أسافر', drawerMytrips:'رحلاتي',
+    drawerOrders:'طلبات الشحن', drawerPoints:'نقاطي', drawerBalance:'رصيدي',
+    drawerMessages:'الدعم', drawerSettings:'الإعدادات',
+    settingsTitle:'الإعدادات', settingsLocation:'الموقع', settingsActivate:'تفعيل',
+    settingsDarkMode:'الوضع الداكن', settingsLanguage:'اللغة', settingsLogout:'تسجيل الخروج',
+    settingsDeleteAccount:'حذف حسابي', settingsClose:'إغلاق',
+    authLoginTitle:'تسجيل الدخول', authLoginSubtitle:'سعداء بعودتك!', authEmailPh:'بريدك الإلكتروني',
+    authPasswordPh:'كلمة المرور', authLoginSubmit:'تسجيل الدخول', authForgotPassword:'نسيت كلمة المرور؟',
+    authNoAccount:'ليس لديك حساب بعد؟', authSignupLink:'إنشاء حساب',
+    wizStep1of4:'الخطوة 1 من 4', wizStep2of4:'الخطوة 2 من 4', wizStep3of4:'الخطوة 3 من 4', wizStep4of4:'الخطوة 4 من 4',
+    wizNameTitle:'ما اسمك الأول؟', wizNameDesc:'لنعرف كيف ننادِيك.', authNamePh:'اسمك الأول',
+    wizPhoneTitle:'أدخل رقم هاتفك', wizPhoneDesc:'سنرسل لك رمزًا عبر الرسائل القصيرة للتحقق منه.', authPhonePh:'رقمك',
+    wizEmailTitle:'ما بريدك الإلكتروني؟', wizEmailDesc:'ستستخدمه لتسجيل الدخول.',
+    wizPasswordTitle:'أنشئ كلمة المرور الخاصة بك', wizPasswordDesc:'6 أحرف على الأقل.',
+    wizContinue:'متابعة', wizCreateAccount:'إنشاء حسابي',
+    authAlready:'لديك حساب بالفعل؟',
+    phoneVerifyTitle:'التحقق من الرقم', phoneVerifyPh:'رمز من 6 أرقام', phoneVerifySubmit:'تحقق',
+    phoneVerifyResend:'إعادة إرسال الرمز', phoneVerifyWrongNumber:'رقم خاطئ؟ البدء من جديد',
+    payoutSetupTitle:'استلم مدفوعاتك',
+    payoutSetupDesc:'إذا نقلت طردًا يومًا ما، املأ معلومات الدفع (IBAN) أدناه لتتمكن من الحصول على أموالك. يمكنك أيضًا تخطي هذه الخطوة والقيام بها لاحقًا من «رصيدي».',
+  },
+};
+let currentLang='fr';
+try{ const saved=localStorage.getItem('baraka-gp-lang'); if(saved==='en'||saved==='ar') currentLang=saved; }catch(e){}
+
+// Les icônes SVG et badges vivent à côté du texte dans beaucoup d'éléments
+// (ex: <svg>...</svg>Chercher ou Suivi<span class="bn-badge">0</span>) :
+// on ne touche donc qu'au noeud texte direct, jamais à tout l'élément.
+function setI18nText(el, text){
+  let node=el.lastChild;
+  while(node && node.nodeType!==3) node=node.previousSibling;
+  if(node) node.textContent=text; else el.textContent=text;
+}
+function t(key, fallback){
+  const dict=I18N[currentLang];
+  return (dict && dict[key]) || fallback || '';
+}
+function applyLanguage(lang){
+  currentLang=(lang==='en'||lang==='ar') ? lang : 'fr';
+  try{ localStorage.setItem('baraka-gp-lang', currentLang); }catch(e){}
+  document.documentElement.lang=currentLang;
+  document.documentElement.dir=(currentLang==='ar') ? 'rtl' : 'ltr';
+  const dict=I18N[currentLang];
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key=el.getAttribute('data-i18n');
+    if(el.dataset.i18nFr===undefined){
+      let node=el.lastChild;
+      while(node && node.nodeType!==3) node=node.previousSibling;
+      el.dataset.i18nFr=node ? node.textContent : el.textContent;
+    }
+    setI18nText(el, (dict && dict[key]) || el.dataset.i18nFr);
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+    const key=el.getAttribute('data-i18n-ph');
+    if(el.dataset.i18nPhFr===undefined) el.dataset.i18nPhFr=el.placeholder;
+    el.placeholder=(dict && dict[key]) || el.dataset.i18nPhFr;
+  });
+  document.querySelectorAll('.lang-opt').forEach(b=>b.classList.toggle('active', b.dataset.lang===currentLang));
+}
 
 // Clé publique Stripe (mode test) — sans risque à exposer côté client.
 // La clé secrète, elle, ne doit JAMAIS apparaître ici : elle vit uniquement
@@ -1167,7 +1273,7 @@ function updateUserHeader(){
   if(!me){
     topName.style.display='none';
     document.getElementById('drawerAvatarBox').innerHTML='';
-    document.getElementById('drawerNameLabel').textContent='Menu';
+    document.getElementById('drawerNameLabel').textContent=t('drawerDefaultMenu','Menu');
     document.getElementById('drawerRatingBox').innerHTML='';
     return;
   }
@@ -1380,6 +1486,8 @@ async function deleteMyAccount(){
   try{ await auth.signOut(); }catch(e){}
   location.reload();
 }
+applyLanguage(currentLang);
+
 // Restauration optimiste de la session depuis le cache local : sans ça,
 // l'app reste sur l'écran de connexion jusqu'à ce que le premier callback
 // onAuthStateChanged de Firebase arrive, ce qui peut être lent ou tarder
