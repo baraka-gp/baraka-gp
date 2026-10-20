@@ -343,16 +343,16 @@
   <!-- SEARCH -->
   <div id="viewSearch">
     <div class="panel">
-      <h2>Où envoyez-vous votre colis ?</h2>
-      <div class="sub">Tous les voyageurs disponibles sont listés ci-dessous — filtrez par trajet si besoin</div>
+      <h2 data-i18n="searchTitle">Où envoyez-vous votre colis ?</h2>
+      <div class="sub" data-i18n="searchSub">Tous les voyageurs disponibles sont listés ci-dessous — filtrez par trajet si besoin</div>
       <div class="row2">
-        <div><label>Ville de départ</label><input type="text" id="searchFrom" list="fromCities" oninput="renderResults()" placeholder="Paris"></div>
-        <div><label>Ville d'arrivée</label><input type="text" id="searchTo" list="toCities" oninput="autoSetCountry('searchTo','searchCountry');renderResults();" placeholder="Nouakchott"></div>
+        <div><label data-i18n="labelFrom">Ville de départ</label><input type="text" id="searchFrom" list="fromCities" oninput="renderResults()" placeholder="Paris"></div>
+        <div><label data-i18n="labelTo">Ville d'arrivée</label><input type="text" id="searchTo" list="toCities" oninput="autoSetCountry('searchTo','searchCountry');renderResults();" placeholder="Nouakchott"></div>
       </div>
       <datalist id="fromCities"></datalist><datalist id="toCities"></datalist>
-      <label>Destination</label>
+      <label data-i18n="labelDestination">Destination</label>
       <select id="searchCountry" onchange="renderResults()">
-        <option value="">Toutes les destinations</option>
+        <option value="" data-i18n="optAllDestinations">Toutes les destinations</option>
         <option value="Mauritanie">🇲🇷 Mauritanie</option>
         <option value="Sénégal">🇸🇳 Sénégal</option>
         <option value="Mali">🇲🇱 Mali</option>
@@ -361,18 +361,18 @@
         <option value="France">🇫🇷 France</option>
       </select>
       <div class="row2">
-        <div><label>Trier par</label>
+        <div><label data-i18n="labelSortBy">Trier par</label>
           <select id="searchSort" onchange="renderResults()">
-            <option value="proximity" selected>Proximité</option>
-            <option value="date">Date (plus proche)</option>
-            <option value="kg">Poids disponible (plus grand)</option>
+            <option value="proximity" selected data-i18n="optProximity">Proximité</option>
+            <option value="date" data-i18n="optDateClosest">Date (plus proche)</option>
+            <option value="kg" data-i18n="optWeightDesc">Poids disponible (plus grand)</option>
           </select>
         </div>
-        <div><label>Poids min. dispo (kg)</label><input type="number" id="searchMinKg" min="1" placeholder="Ex. 5" oninput="renderResults()"></div>
+        <div><label data-i18n="labelMinKg">Poids min. dispo (kg)</label><input type="number" id="searchMinKg" min="1" placeholder="Ex. 5" oninput="renderResults()"></div>
       </div>
     </div>
     <div id="searchResultsSection">
-      <div class="results-head"><h3>Voyageurs disponibles</h3><span id="resultCount"></span></div>
+      <div class="results-head"><h3 data-i18n="resultsHeading">Voyageurs disponibles</h3><span id="resultCount"></span></div>
       <div id="resultsList"></div>
     </div>
   </div>
@@ -825,6 +825,15 @@ const I18N = {
     phoneVerifyResend:'Resend code', phoneVerifyWrongNumber:'Wrong number? Start over',
     payoutSetupTitle:'Receive your payments',
     payoutSetupDesc:"If you carry a package one day, fill in your payment details (IBAN) below to get paid. You can also skip this step and do it later, from «My balance».",
+    searchTitle:'Where are you sending your package?', searchSub:'All available travelers are listed below — filter by route if needed',
+    labelFrom:'Departure city', labelTo:'Arrival city', labelDestination:'Destination', optAllDestinations:'All destinations',
+    labelSortBy:'Sort by', optProximity:'Proximity', optDateClosest:'Date (soonest)', optWeightDesc:'Available weight (largest)',
+    labelMinKg:'Min. available weight (kg)', resultsHeading:'Available travelers',
+    resultSingular:'result', resultPlural:'results',
+    emptyNoCity:'Enter an arrival city to see available trips.', emptyNoMatch:'No matching trip for now.',
+    publishMyRequest:'📢 Publish my request', dispoLabel:'available', travelerDefault:'Traveler',
+    verifiedBadge:'Verified traveler', pendingVerifBadge:'Verification in progress',
+    chooseTraveler:'Choose this traveler', arrivalEstimate:'Estimated arrival',
   },
   ar: {
     bnSearch:'بحث', bnSend:'إرسال', bnPublish:'سافر', bnOrders:'التتبع', bnMore:'المزيد',
@@ -849,6 +858,15 @@ const I18N = {
     phoneVerifyResend:'إعادة إرسال الرمز', phoneVerifyWrongNumber:'رقم خاطئ؟ البدء من جديد',
     payoutSetupTitle:'استلم مدفوعاتك',
     payoutSetupDesc:'إذا نقلت طردًا يومًا ما، املأ معلومات الدفع (IBAN) أدناه لتتمكن من الحصول على أموالك. يمكنك أيضًا تخطي هذه الخطوة والقيام بها لاحقًا من «رصيدي».',
+    searchTitle:'إلى أين ترسل طردك؟', searchSub:'كل المسافرين المتاحين مذكورون أدناه — صفِّ حسب الرحلة إذا لزم الأمر',
+    labelFrom:'مدينة الانطلاق', labelTo:'مدينة الوصول', labelDestination:'الوجهة', optAllDestinations:'كل الوجهات',
+    labelSortBy:'الترتيب حسب', optProximity:'القرب', optDateClosest:'التاريخ (الأقرب)', optWeightDesc:'الوزن المتاح (الأكبر)',
+    labelMinKg:'الوزن المتاح الأدنى (كغ)', resultsHeading:'المسافرون المتاحون',
+    resultSingular:'نتيجة', resultPlural:'نتائج',
+    emptyNoCity:'أدخل مدينة الوصول لرؤية الرحلات المتاحة.', emptyNoMatch:'لا توجد رحلة مطابقة حاليًا.',
+    publishMyRequest:'📢 نشر طلبي', dispoLabel:'متاح', travelerDefault:'مسافر',
+    verifiedBadge:'مسافر موثّق', pendingVerifBadge:'التحقق جارٍ',
+    chooseTraveler:'اختيار هذا المسافر', arrivalEstimate:'الوصول المقدر',
   },
 };
 let currentLang='fr';
@@ -887,6 +905,13 @@ function applyLanguage(lang){
     el.placeholder=(dict && dict[key]) || el.dataset.i18nPhFr;
   });
   document.querySelectorAll('.lang-opt').forEach(b=>b.classList.toggle('active', b.dataset.lang===currentLang));
+  // Les cartes de résultats sont construites en JS (pas de data-i18n possible) :
+  // on les régénère si l'écran de recherche est déjà affiché, sans jamais y
+  // forcer la navigation ni planter si l'appli n'a pas encore fini de démarrer.
+  try{
+    const viewSearch=document.getElementById('viewSearch');
+    if(viewSearch && viewSearch.style.display!=='none' && typeof renderResults==='function') renderResults();
+  }catch(e){}
 }
 
 // Clé publique Stripe (mode test) — sans risque à exposer côté client.
@@ -2059,17 +2084,17 @@ function displayResults(country, from, to, sortBy, minKg){
     filtered.sort((a,b)=>distOf(a)-distOf(b));
   }
   else{ filtered.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999')); }
-  document.getElementById('resultCount').textContent=filtered.length+(filtered.length>1?" résultats":" résultat");
+  document.getElementById('resultCount').textContent=filtered.length+" "+(filtered.length>1?t('resultPlural','résultats'):t('resultSingular','résultat'));
   const list=document.getElementById('resultsList');
   if(filtered.length===0){
     if(!to){
-      list.innerHTML=`<div class="panel" style="text-align:center;"><div class="sub">Indiquez une ville d'arrivée pour voir les trajets disponibles.</div></div>`;
+      list.innerHTML=`<div class="panel" style="text-align:center;"><div class="sub">${t('emptyNoCity',"Indiquez une ville d'arrivée pour voir les trajets disponibles.")}</div></div>`;
       return;
     }
     list.innerHTML=`
       <div class="panel" style="text-align:center;">
-        <div class="sub" style="margin-bottom:14px;">Aucun trajet ne correspond pour l'instant.</div>
-        <button class="btn gold" onclick="createAlert()">📢 Publier ma demande</button>
+        <div class="sub" style="margin-bottom:14px;">${t('emptyNoMatch',"Aucun trajet ne correspond pour l'instant.")}</div>
+        <button class="btn gold" onclick="createAlert()">${t('publishMyRequest','📢 Publier ma demande')}</button>
       </div>`;
     return;
   }
@@ -2087,7 +2112,7 @@ function displayResults(country, from, to, sortBy, minKg){
           ${avatarHtml}
           <div>
             <div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div>
-            <div style="font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;">${esc(profile.name||'Voyageur')}${avg!==null ? starsHtml(avg) : ''}</div>
+            <div style="font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;">${esc(profile.name||t('travelerDefault','Voyageur'))}${avg!==null ? starsHtml(avg) : ''}</div>
           </div>
         </div>
         <div class="price">${PRICE_PER_KG}€/kg</div>
@@ -2095,11 +2120,11 @@ function displayResults(country, from, to, sortBy, minKg){
       <div class="meta">
         <span>${flag(l.country)} <b>${l.country}</b></span>
         <span>📅 <b>${fmtDate(l.date)}</b></span>
-        <span>🧳 <b>${remainingKg(l)} kg</b> dispo</span>
+        <span>🧳 <b>${remainingKg(l)} kg</b> ${t('dispoLabel','dispo')}</span>
       </div>
-      ${l.arrivalDateTime ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">🛬 Arrivée estimée : ${fmtDateTime(l.arrivalDateTime)}</div>` : ''}
-      ${verified ? `<div class="badge verified">${ICON_CHECK}Voyageur vérifié</div>` : `<div class="badge pending">${ICON_CLOCK}Vérification en cours</div>`}
-      <button class="btn gold sm" onclick='openOrderModal(${JSON.stringify(l).replace(/'/g,"&apos;")})'>Choisir ce voyageur</button>
+      ${l.arrivalDateTime ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">🛬 ${t('arrivalEstimate','Arrivée estimée')} : ${fmtDateTime(l.arrivalDateTime)}</div>` : ''}
+      ${verified ? `<div class="badge verified">${ICON_CHECK}${t('verifiedBadge','Voyageur vérifié')}</div>` : `<div class="badge pending">${ICON_CLOCK}${t('pendingVerifBadge','Vérification en cours')}</div>`}
+      <button class="btn gold sm" onclick='openOrderModal(${JSON.stringify(l).replace(/'/g,"&apos;")})'>${t('chooseTraveler','Choisir ce voyageur')}</button>
     </div>`;
   }).join('');
 }
