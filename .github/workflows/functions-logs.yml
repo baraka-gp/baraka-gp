@@ -48,6 +48,9 @@ on:
       trigger_instant_payout:
         description: 'Numéro (format Firestore, ex 0749392022) du voyageur pour qui déclencher maintenant un virement instantané de tout son solde disponible (laisser vide pour ne rien faire)'
         required: false
+      add_authorized_domain:
+        description: 'Domaine à ajouter aux domaines autorisés Firebase Auth, ex baraka-gp.github.io (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -306,6 +309,31 @@ jobs:
           echo "=== Résultat ==="
           jq '{id, amount, status, method, arrival_date, failure_message, error}' /tmp/payout-result.json
           cat /tmp/payout-result.json
+
+      - name: Ajouter un domaine autorisé Firebase Auth
+        if: inputs.add_authorized_domain != ''
+        env:
+          DOMAIN: ${{ inputs.add_authorized_domain }}
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          curl -sS "https://identitytoolkit.googleapis.com/admin/v2/projects/baraka-gp/config" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/authconfig.json
+          echo "=== Domaines autorisés actuels ==="
+          jq '.authorizedDomains' /tmp/authconfig.json
+          node -e "
+            const cfg = JSON.parse(require('fs').readFileSync('/tmp/authconfig.json', 'utf8'));
+            const domains = new Set(cfg.authorizedDomains || []);
+            domains.add(process.env.DOMAIN);
+            require('fs').writeFileSync('/tmp/newdomains.json', JSON.stringify([...domains]));
+          "
+          curl -sS -X PATCH "https://identitytoolkit.googleapis.com/admin/v2/projects/baraka-gp/config?updateMask=authorizedDomains" \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d "{\"authorizedDomains\": $(cat /tmp/newdomains.json)}" \
+            -o /tmp/updated.json
+          echo "=== Nouveaux domaines autorisés ==="
+          jq '.authorizedDomains' /tmp/updated.json
 
       - name: Corriger manuellement stripeOnboarded sur un profil
         if: inputs.fix_profile_onboarded != ''

@@ -98,8 +98,8 @@ async function sendEmail(to, subject, html) {
 }
 
 const EMAIL_SECRETS = [gmailUser, gmailAppPassword];
-const APP_URL = 'https://laminecamara251005-wq.github.io/baraka-gp/index.html';
-const ADMIN_URL = 'https://laminecamara251005-wq.github.io/baraka-gp/admin.html';
+const APP_URL = 'https://baraka-gp.github.io/baraka-gp/index.html';
+const ADMIN_URL = 'https://baraka-gp.github.io/baraka-gp/admin.html';
 
 // Envoie un email à l'admin (compte propriétaire) — pour le prévenir d'un
 // nouvel élément à modérer plutôt qu'il doive penser à revérifier
@@ -174,7 +174,7 @@ exports.createConnectOnboardingLink = onCall({ secrets: [stripeSecretKey], regio
     const stripe = getStripe();
     const accountId = await getOrCreateExpressAccount(stripe, phone, name, email);
 
-    const origin = (request.data && request.data.origin) || 'https://laminecamara251005-wq.github.io/baraka-gp';
+    const origin = (request.data && request.data.origin) || 'https://baraka-gp.github.io/baraka-gp';
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${origin}/index.html?stripe=refresh`,
