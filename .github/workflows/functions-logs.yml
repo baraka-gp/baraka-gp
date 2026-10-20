@@ -36,6 +36,12 @@ on:
       check_connected_accounts:
         description: 'Verifier le statut (paiements actives, virements actives, pieces manquantes) des comptes Stripe voyageurs existants (oui/non)'
         required: false
+      check_webhook_endpoints:
+        description: 'Lister les webhooks Stripe enregistrés et leurs évènements écoutés (oui/non)'
+        required: false
+      fix_profile_onboarded:
+        description: 'Numéro (format Firestore, ex 0749392022) dont le profil doit être marqué stripeOnboarded=true manuellement (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -216,3 +222,31 @@ jobs:
             curl -sS https://api.stripe.com/v1/accounts/$ACCT -u "$STRIPE_SECRET_KEY:" -o /tmp/acct-$ACCT.json
             jq '{id, charges_enabled, payouts_enabled, details_submitted, requirements: {currently_due, disabled_reason}}' /tmp/acct-$ACCT.json
           done < /tmp/accounts.txt
+
+      - name: Lister les webhooks Stripe enregistrés
+        if: inputs.check_webhook_endpoints != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -e
+          curl -sS https://api.stripe.com/v1/webhook_endpoints -u "$STRIPE_SECRET_KEY:" -o /tmp/webhooks.json
+          jq '.data[] | {id, url, status, enabled_events}' /tmp/webhooks.json
+
+      - name: Corriger manuellement stripeOnboarded sur un profil
+        if: inputs.fix_profile_onboarded != ''
+        env:
+          PHONE: ${{ inputs.fix_profile_onboarded }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const ref = admin.firestore().collection('profiles').doc(process.env.PHONE);
+              const snap = await ref.get();
+              if (!snap.exists) { console.error('Profil introuvable pour', process.env.PHONE); process.exit(1); }
+              await ref.set({ stripeOnboarded: true }, { merge: true });
+              console.log('stripeOnboarded mis à true pour', process.env.PHONE);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
