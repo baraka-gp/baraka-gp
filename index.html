@@ -1203,7 +1203,14 @@ async function loadAll(){
   try{ listings=await fetchCollectionArray('listings'); }catch(e){ listings=[]; }
   try{ profiles=await fetchCollectionMap('profiles'); }catch(e){ profiles={}; }
   try{ alerts=await fetchCollectionArray('alerts'); }catch(e){ alerts=[]; }
-  try{ messages=await fetchCollectionMap('messages'); }catch(e){ messages={}; }
+  // Fil de support : uniquement le sien (voir aussi firestore.rules) — avant,
+  // toute la collection "messages" (donc les fils de tout le monde) était
+  // téléchargée ici, comme pour "orders".
+  try{
+    const myPhone=cleanPhone(me.phone);
+    const myMsgSnap=await withTimeout(db.collection('messages').doc(myPhone).get(), 8000);
+    messages = myMsgSnap.exists ? {[myPhone]: myMsgSnap.data()} : {};
+  }catch(e){ messages={}; }
   try{ orders=await fetchMyOrders(); }catch(e){ orders=[]; }
   try{ orderMsgs=await fetchMyOrderMsgs(orders.map(o=>o.id)); }catch(e){ orderMsgs={}; }
   try{ points=await fetchCollectionMap('points'); }catch(e){ points={}; }
@@ -3154,7 +3161,6 @@ async function acceptColisRequest(reqId){
   await saveOrders([order.id]);
   listings=listings.filter(x=>x.id!==reqId);
   try{ await db.collection('listings').doc(reqId).delete(); }catch(e){}
-  ensureThread(req.phone, req.name);
   showToast(pickupSuggested ? "Demande acceptée ! Point de RDV suggéré automatiquement." : "Demande acceptée !"+(noSuggestionReason?" "+noSuggestionReason:" Proposez un lieu et un horaire de prise en charge."));
   renderMyTrips();
 }

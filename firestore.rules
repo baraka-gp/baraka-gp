@@ -109,10 +109,10 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Messagerie support et messagerie de commande.
+    // Messagerie support : chacun ne lit/écrit que son propre fil (identifié
+    // par son numéro) ; l'admin (admin.html) garde accès à tous les fils.
     match /messages/{phone} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read, write: if isAdmin() || (isSignedIn() && myPhone() == phone);
     }
     // Le fil "...{orderId}_recipient" reste accessible à qui a le lien de
     // confirmation (compte anonyme, pas de numéro) — même niveau de sécurité

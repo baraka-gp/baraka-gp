@@ -84,11 +84,16 @@ quelqu'un d'autre. Seule exception, volontaire : le lien de confirmation de
 réception (compte anonyme, voir plus bas) peut lire une commande précise par
 son id et la faire passer de "livrée" à "terminée", rien d'autre.
 
-Les autres collections (`messages`, `points`, et les champs non sensibles de
-`profiles`) n'ont pas encore ce traitement : un compte connecté peut toujours
-lire/écrire au-delà de ses propres données sur celles-ci (ça nécessiterait
-le même travail — lier chaque enregistrement à son auteur — prévu dans un
-prochain passage).
+**Messagerie support (`messages`) : corrigé aussi.** Chacun ne télécharge et
+ne peut lire/écrire que son propre fil (`messages/{sonNuméro}`) ; l'admin
+(`admin.html`) garde un accès complet à tous les fils, pour répondre à
+n'importe qui.
+
+Les autres collections (`points`, et les champs non sensibles de `profiles`)
+n'ont pas encore ce traitement : un compte connecté peut toujours lire/écrire
+au-delà de ses propres données sur celles-ci (ça nécessiterait le même
+travail — lier chaque enregistrement à son auteur — prévu dans un prochain
+passage).
 
 Le lien de confirmation de réception (`?receive=...`) est protégé par le code
 à 4 chiffres à saisir, pas par le lien lui-même : toute personne qui devine ou
