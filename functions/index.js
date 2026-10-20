@@ -328,8 +328,9 @@ async function performTransfer(orderId, orderRef, order) {
 
   const stripe = getStripe();
   const amountCents = Math.round((order.priceNet || 0) * 100);
+  let transfer;
   try {
-    const transfer = await stripe.transfers.create({
+    transfer = await stripe.transfers.create({
       amount: amountCents,
       currency: 'eur',
       destination: stripeAccountId,
@@ -337,11 +338,27 @@ async function performTransfer(orderId, orderRef, order) {
       metadata: { orderId },
     });
     await orderRef.set({ transferred: true, transferId: transfer.id, transferredAt: Date.now(), transferError: admin.firestore.FieldValue.delete() }, { merge: true });
-    return { transferId: transfer.id };
   } catch (err) {
     await orderRef.set({ transferError: err.message }, { merge: true });
     return { error: err.message };
   }
+
+  // On essaie ensuite de verser cette somme instantanément sur le compte
+  // bancaire du voyageur (quelques minutes, contre une petite commission
+  // Stripe prélevée sur ce versement). Si son compte n'y est pas éligible,
+  // on ne bloque pas : le virement automatique quotidien de Stripe prendra
+  // le relais tout seul (aucune action à faire ici).
+  try {
+    const payout = await stripe.payouts.create(
+      { amount: amountCents, currency: 'eur', method: 'instant' },
+      { stripeAccount: stripeAccountId }
+    );
+    await orderRef.set({ instantPayoutId: payout.id }, { merge: true });
+  } catch (err) {
+    console.warn('Virement instantané indisponible pour', stripeAccountId, ':', err.message);
+  }
+
+  return { transferId: transfer.id };
 }
 
 exports.transferToTraveler = onDocumentUpdated({ document: 'orders/{orderId}', secrets: [stripeSecretKey], region: REGION }, async (event) => {
