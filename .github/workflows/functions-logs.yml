@@ -45,6 +45,9 @@ on:
       check_payouts:
         description: 'Numéro (format Firestore, ex 0749392022) du voyageur dont on veut lister les versements Stripe récents (laisser vide pour ne rien faire)'
         required: false
+      trigger_instant_payout:
+        description: 'Numéro (format Firestore, ex 0749392022) du voyageur pour qui déclencher maintenant un virement instantané de tout son solde disponible (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -266,6 +269,43 @@ jobs:
           echo "--- Versements (payouts) récents ---"
           curl -sS "https://api.stripe.com/v1/payouts?limit=10" -u "$STRIPE_SECRET_KEY:" -H "Stripe-Account: $ACCT" -o /tmp/payouts.json
           jq '.data[] | {id, amount, currency, status, method, arrival_date, created, failure_message}' /tmp/payouts.json
+
+      - name: Déclencher un virement instantané manuel
+        if: inputs.trigger_instant_payout != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PHONE: ${{ inputs.trigger_instant_payout }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const snap = await admin.firestore().collection('profiles').doc(process.env.PHONE).get();
+              if (!snap.exists || !snap.data().stripeAccountId) { console.error('Pas de compte Stripe pour ce numéro'); process.exit(1); }
+              require('fs').writeFileSync('/tmp/acct.txt', snap.data().stripeAccountId);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+          ACCT=$(cat /tmp/acct.txt)
+          echo "=== Compte $ACCT ==="
+          curl -sS https://api.stripe.com/v1/balance -u "$STRIPE_SECRET_KEY:" -H "Stripe-Account: $ACCT" -o /tmp/bal.json
+          AMOUNT=$(jq '[.available[] | select(.currency=="eur") | .amount] | add // 0' /tmp/bal.json)
+          echo "Solde disponible (centimes) : $AMOUNT"
+          if [ "$AMOUNT" -le 0 ]; then
+            echo "Rien à verser (solde disponible nul)."
+            exit 0
+          fi
+          curl -sS https://api.stripe.com/v1/payouts \
+            -u "$STRIPE_SECRET_KEY:" \
+            -H "Stripe-Account: $ACCT" \
+            --data-urlencode "amount=$AMOUNT" \
+            --data-urlencode "currency=eur" \
+            --data-urlencode "method=instant" \
+            -o /tmp/payout-result.json
+          echo "=== Résultat ==="
+          jq '{id, amount, status, method, arrival_date, failure_message, error}' /tmp/payout-result.json
+          cat /tmp/payout-result.json
 
       - name: Corriger manuellement stripeOnboarded sur un profil
         if: inputs.fix_profile_onboarded != ''
