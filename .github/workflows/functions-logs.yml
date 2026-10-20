@@ -145,7 +145,7 @@ jobs:
           set -e
           curl -sS https://api.stripe.com/v1/account -u "$STRIPE_SECRET_KEY:" -o /tmp/stripe-account.json
           echo "=== Compte plateforme (/v1/account) ==="
-          jq '{id, charges_enabled, payouts_enabled, details_submitted, requirements, capabilities, controller, type, business_profile}' /tmp/stripe-account.json
+          jq '{id, charges_enabled, payouts_enabled, details_submitted, requirements, capabilities, controller, type, business_profile, payout_schedule: .settings.payouts}' /tmp/stripe-account.json
 
       - name: Définir le nom de l'entreprise sur Stripe
         if: inputs.set_business_name != ''
