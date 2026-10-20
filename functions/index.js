@@ -585,6 +585,64 @@ exports.awardCompletionPoints = onDocumentUpdated({ document: 'orders/{orderId}'
   }
 });
 
+// Nombre de trajets terminés, affiché sur le profil public d'un voyageur
+// (showProfileDetail côté client) — ne peut plus être recalculé en scannant
+// toutes les commandes (devenues privées, voir firestore.rules), donc tenu
+// à jour ici, au seul moment où une commande devient "terminée".
+exports.awardCompletionTripCount = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  if (before.status === after.status || after.status !== 'completed') return;
+  const gpKey = cleanPhone(after.gpPhone);
+  const ref = db.collection('profiles').doc(gpKey);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return; // un voyageur a nécessairement déjà un profil (billet/identité) pour avoir publié ce trajet
+    const data = snap.data();
+    data.completedTripsCount = (data.completedTripsCount || 0) + 1;
+    tx.set(ref, data, { merge: true });
+  });
+});
+
+// Reporte une note (voyageur notant son client, ou client notant son
+// voyageur) sur le profil public de la personne notée — moyenne, nombre
+// d'avis, et une petite copie des derniers commentaires pour le voyageur
+// (affichés sur son profil). Fait ici plutôt que par le navigateur de la
+// personne qui note, puisque ça touche le profil de quelqu'un d'autre.
+exports.applyOrderRating = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+
+  if (after.rating != null && before.rating == null) {
+    const gpKey = cleanPhone(after.gpPhone);
+    const ref = db.collection('profiles').doc(gpKey);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.exists ? snap.data() : { name: after.gpName || 'Voyageur', phone: after.gpPhone, verified: false, ratingSum: 0, ratingCount: 0 };
+      data.ratingSum = (data.ratingSum || 0) + after.rating;
+      data.ratingCount = (data.ratingCount || 0) + 1;
+      if (after.ratingComment) {
+        const reviews = (data.publicReviews || []).slice(0, 4);
+        reviews.unshift({ rating: after.rating, comment: after.ratingComment, createdAt: Date.now() });
+        data.publicReviews = reviews;
+      }
+      tx.set(ref, data, { merge: true });
+    });
+  }
+
+  if (after.clientRating != null && before.clientRating == null) {
+    const clientKey = cleanPhone(after.clientPhone);
+    const ref = db.collection('profiles').doc(clientKey);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.exists ? snap.data() : { name: after.clientName || 'Utilisateur', phone: after.clientPhone, verified: false, ratingSum: 0, ratingCount: 0 };
+      data.clientRatingSum = (data.clientRatingSum || 0) + after.clientRating;
+      data.clientRatingCount = (data.clientRatingCount || 0) + 1;
+      tx.set(ref, data, { merge: true });
+    });
+  }
+});
+
 // Notification push pour la messagerie support (admin → utilisateur). Pas
 // l'inverse : l'admin lit les messages depuis la console, pas via push.
 exports.notifyUserMessage = onDocumentUpdated({ document: 'messages/{phone}', region: REGION }, async (event) => {

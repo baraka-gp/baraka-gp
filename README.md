@@ -103,9 +103,23 @@ anonyme), pour que le lien de confirmation de réception puisse afficher
 l'identifiant Baraka GP de l'expéditeur — déjà censé être écrit en clair
 sur le colis, donc pas une donnée secrète.
 
-Il reste les champs non sensibles de `profiles` (nom, avatar, note...) :
-un compte connecté peut toujours les modifier au-delà des siens (prévu
-dans un prochain passage).
+**Profils (`profiles` et `profilesPrivate`) : corrigé, même principe que les
+points.** La lecture reste volontairement ouverte à tout compte connecté
+(recherche, profils publics) — ce n'est pas ça le problème. C'était
+l'écriture : noter un voyageur ou un client, ou terminer une commande,
+modifiait directement le profil de quelqu'un d'autre (moyenne de notes,
+nombre d'avis, nombre de trajets terminés) depuis le navigateur de qui note
+ou confirme. Déplacé côté serveur : les Cloud Functions `applyOrderRating`
+et `awardCompletionTripCount` s'en chargent désormais (Admin SDK). Les
+règles restreignent la création/modification d'un profil (et de la pièce
+d'identité associée, `profilesPrivate`) à son propre numéro ; seul l'admin
+peut en plus le vérifier.
+
+Avec ça, les quatre collections identifiées (`orders`, `messages`, `points`,
+`profiles`) ne permettent plus à un compte connecté d'agir au-delà de ses
+propres données (sauf lecture publique volontaire pour `listings` et
+`profiles`, et les quelques accès ciblés documentés ci-dessus pour le lien
+de confirmation de réception).
 
 Le lien de confirmation de réception (`?receive=...`) est protégé par le code
 à 4 chiffres à saisir, pas par le lien lui-même : toute personne qui devine ou

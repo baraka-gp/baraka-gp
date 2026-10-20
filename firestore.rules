@@ -57,24 +57,30 @@ service cloud.firestore {
       allow delete: if isSignedIn();
     }
 
-    // Profils voyageurs (identité, billet). Seul l'admin peut vérifier/supprimer.
+    // Profils voyageurs (identité, billet). Lecture volontairement ouverte à
+    // tout compte connecté (recherche, profils publics affichés à tous).
+    // Écriture restreinte à son propre profil : la moyenne/nombre d'avis, le
+    // nombre de trajets terminés et les commentaires publics ne sont plus
+    // écrits par le navigateur de qui note/complète une commande, mais par
+    // les Cloud Functions applyOrderRating et awardCompletionTripCount
+    // (Admin SDK, donc pas soumises à ces règles). Seul l'admin peut en plus
+    // vérifier un profil (champ "verified").
     match /profiles/{phone} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && myPhone() == phone;
       allow update: if isAdmin()
-        || (isSignedIn() && !('verified' in request.resource.data.diff(resource.data).affectedKeys()));
+        || (isSignedIn() && myPhone() == phone && !('verified' in request.resource.data.diff(resource.data).affectedKeys()));
       allow delete: if isAdmin();
     }
 
     // Pièce d'identité (photo), séparée du reste du profil : contrairement
     // au nom/avatar/note, elle n'a aucune raison d'être lue par un autre
     // utilisateur que l'admin — seule la vérification d'identité en a
-    // besoin. L'écriture reste ouverte à tout compte connecté (créée depuis
-    // le navigateur de son propriétaire au moment de la publication d'un
-    // trajet), comme le reste de l'app.
+    // besoin. Écriture restreinte à son propre numéro (créée depuis le
+    // navigateur de son propriétaire au moment de la publication d'un trajet).
     match /profilesPrivate/{phone} {
       allow read: if isAdmin();
-      allow create, update: if isSignedIn();
+      allow create, update: if isSignedIn() && myPhone() == phone;
       allow delete: if isAdmin();
     }
 

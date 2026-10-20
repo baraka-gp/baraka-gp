@@ -1224,7 +1224,12 @@ async function loadAll(){
   }catch(e){ points={}; }
 }
 async function saveListings(){ try{ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }catch(e){} }
-async function saveProfiles(){ try{ const batch=db.batch(); Object.keys(profiles).forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }catch(e){} }
+// `keys` restreint l'écriture au(x) profil(s) réellement modifié(s) : sans
+// ça, cette fonction réécrirait TOUS les profils actuellement en mémoire
+// (toute la collection, volontairement publique en lecture) à chaque appel,
+// ce que les règles Firestore (restreintes à son propre profil) refuseraient
+// en bloc — même raison que pour saveOrders().
+async function saveProfiles(keys){ try{ const targets = keys || Object.keys(profiles); const batch=db.batch(); targets.forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }catch(e){} }
 // La pièce d'identité part dans une collection séparée ("profilesPrivate"),
 // lisible seulement par l'admin (voir firestore.rules) — contrairement au
 // reste du profil (nom, avatar, note), elle ne doit jamais être téléchargée
@@ -2906,20 +2911,12 @@ async function confirmDelivery(orderId){
   }
   o.status='completed';
   await saveOrders([orderId]);
-  // Les commandes ne sont plus accessibles qu'à leurs deux participants (voir
-  // firestore.rules) : ce compteur, affiché sur le profil public du voyageur
-  // (showProfileDetail), ne peut donc plus être recalculé en scannant toutes
-  // les commandes — on le maintient à jour ici, au seul moment où une
-  // commande devient "terminée".
-  const gpProfileKey=cleanPhone(o.gpPhone);
-  if(profiles[gpProfileKey]){
-    profiles[gpProfileKey].completedTripsCount = (profiles[gpProfileKey].completedTripsCount||0) + 1;
-    await saveProfiles();
-  }
-  // Le crédit de points (client +5, parrain +5 le cas échéant) est fait côté
-  // serveur par la Cloud Function awardCompletionPoints, déclenchée par ce
-  // même passage à "completed" — plus aucun navigateur n'écrit directement
-  // le solde de quelqu'un d'autre (voir firestore.rules).
+  // Le crédit de points (client +5, parrain +5 le cas échéant) et le
+  // compteur de trajets terminés affiché sur le profil public du voyageur
+  // sont faits côté serveur par les Cloud Functions awardCompletionPoints
+  // et awardCompletionTripCount, déclenchées par ce même passage à
+  // "completed" — plus aucun navigateur n'écrit directement le solde ou le
+  // profil de quelqu'un d'autre (voir firestore.rules).
   showToast("Livraison confirmée, merci ! 🎉");
   renderOrders();
 }
@@ -2942,31 +2939,15 @@ async function submitRating(){
   if(ratingTarget==='client'){
     o.clientRating=ratingStars;
     o.clientRatingComment=comment;
-    await saveOrders([ratingOrderId]);
-    const clientKey=cleanPhone(o.clientPhone);
-    if(!profiles[clientKey]) profiles[clientKey]={name:o.clientName, phone:o.clientPhone, verified:false, ratingSum:0, ratingCount:0};
-    profiles[clientKey].clientRatingSum = (profiles[clientKey].clientRatingSum||0) + ratingStars;
-    profiles[clientKey].clientRatingCount = (profiles[clientKey].clientRatingCount||0) + 1;
-    await saveProfiles();
   }else{
     o.rating=ratingStars;
     o.ratingComment=comment;
-    await saveOrders([ratingOrderId]);
-    const gpKey=cleanPhone(o.gpPhone);
-    if(profiles[gpKey]){
-      profiles[gpKey].ratingSum = (profiles[gpKey].ratingSum||0) + ratingStars;
-      profiles[gpKey].ratingCount = (profiles[gpKey].ratingCount||0) + 1;
-      // Pareil que completedTripsCount : les commentaires publics affichés sur
-      // le profil d'un voyageur ne peuvent plus venir d'un scan de toutes les
-      // commandes (devenues privées), donc on en garde une petite copie ici.
-      if(comment){
-        const reviews=(profiles[gpKey].publicReviews||[]).slice(0,4);
-        reviews.unshift({rating:ratingStars, comment, createdAt:Date.now()});
-        profiles[gpKey].publicReviews=reviews;
-      }
-      await saveProfiles();
-    }
   }
+  await saveOrders([ratingOrderId]);
+  // Le report de cette note sur le profil public (moyenne, nombre d'avis,
+  // commentaires) est fait côté serveur par la Cloud Function
+  // applyOrderRating, déclenchée par ce même changement — plus aucun
+  // navigateur n'écrit le profil de quelqu'un d'autre (voir firestore.rules).
   document.getElementById('ratingOverlay').classList.remove('show');
   showToast("Merci pour votre avis !");
   renderOrders();
@@ -3050,7 +3031,7 @@ async function publishListing(){
       try{ avatar=await compressImage(avatarFile); }catch(e){}
     }
     profiles[phone]={name,phone:phoneRaw,avatar,verified:false,createdAt:Date.now(),ratingSum:0,ratingCount:0};
-    await saveProfiles();
+    await saveProfiles([phone]);
     await saveIdPhoto(phone, idPhoto, idType);
   }
   if(!document.getElementById('pAcceptAll').checked){ showToast("Merci de cocher la case d'engagement"); return; }
