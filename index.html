@@ -878,6 +878,27 @@ const I18N = {
     writeTo:'Write to the', writeToTraveler:'traveler', writeToClient:'client', writeToRecipient:'recipient',
     totalPriceLabel:'Total price:', discountApplied:'(€5 discount applied)', youReceiveLabel:'You receive:', commissionNote:'(Baraka GP commission already deducted)',
     toDeliverTo:'To deliver to:', shareWithRecipientBtn:'Share the link with the recipient', discussionWithRecipient:'Discussion with the recipient',
+    btnAccept:'Accept', btnRefuse:'Refuse',
+    travelerAccepted:'The traveler accepted!', finalizingPickupTime:'They are finalizing the pickup time',
+    proposingPickupLocation:'They are proposing the pickup location and time', youWillBeNotified:", you'll be notified.",
+    btnCancelMyOrder:'Cancel my order', checkPickupPrompt:'Check the location and time proposed above. If they work for you, confirm to be able to pay.',
+    acceptLocationTime:'I accept this location and time',
+    useDiscountLabel:'Use a €5 discount (you have {n} available)',
+    payNow:'Pay now', viewMyCode:'View my code (to give the client at pickup)', cancelThisTrip:'Cancel this trip',
+    writeOnPackagePrefix:'Before pickup, write on the package:', writeOnPackageMiddle:'and your Baraka GP ID', writeOnPackageSuffix:'(no need to write your phone number).',
+    recipientDefault:'recipient', askCodeFromTraveler:"Ask the traveler for the code at pickup, to confirm it's really them.",
+    code4digits:'4-digit code', btnValidate:'Validate', cancelAfterPaymentNote:'If you cancel after paying, contact support if you expect a refund.',
+    markAsDelivered:'Mark as delivered',
+    appSuggestedLocation:"The app suggested this halfway point: check it (or change it), add the time, then confirm to send it to the client.",
+    proposeLocationToClient:'Propose a pickup location and time to the client.',
+    pickupLocationLabel:'Pickup location', suggestedEditable:' (suggested, editable)', proposedSuffix:' proposed',
+    phLocationExample:'E.g. Gare du Nord, Paris', proposedPickupTimeLabel:'Proposed pickup time',
+    acceptAndProposeToClient:'I accept this location, propose to client', proposeToClient:'Propose to client',
+    askCodeFromRecipient:'Ask the recipient for the 4-digit code at handover, to confirm receipt.',
+    reviewLinkSentToRecipient:'Review the link sent to the recipient',
+    travelerHandsToRecipient:'The traveler hands the package to the recipient, who gives them their receipt code to confirm.',
+    rateThisTraveler:'Rate this traveler', rateThisClient:'Rate this client',
+    travelerRatedLabel:'Traveler rated:', clientRatedLabel:'Client rated:',
   },
   ar: {
     bnSearch:'بحث', bnSend:'إرسال', bnPublish:'سافر', bnOrders:'التتبع', bnMore:'المزيد',
@@ -955,6 +976,27 @@ const I18N = {
     writeTo:'اكتب إلى', writeToTraveler:'المسافر', writeToClient:'العميل', writeToRecipient:'المستلم',
     totalPriceLabel:'السعر الإجمالي:', discountApplied:'(تم تطبيق خصم 5€)', youReceiveLabel:'ستحصل على:', commissionNote:'(تم خصم عمولة Baraka GP بالفعل)',
     toDeliverTo:'يُسلَّم إلى:', shareWithRecipientBtn:'مشاركة الرابط مع المستلم', discussionWithRecipient:'محادثة مع المستلم',
+    btnAccept:'قبول', btnRefuse:'رفض',
+    travelerAccepted:'وافق المسافر!', finalizingPickupTime:'يحدد الآن وقت الاستلام',
+    proposingPickupLocation:'يقترح الآن مكان ووقت الاستلام', youWillBeNotified:'، سيتم إشعارك.',
+    btnCancelMyOrder:'إلغاء طلبي', checkPickupPrompt:'تحقق من المكان والوقت المقترحين أعلاه. إذا كانا مناسبين، أكّد لتتمكن من الدفع.',
+    acceptLocationTime:'أوافق على هذا المكان والوقت',
+    useDiscountLabel:'استخدام خصم 5€ (لديك {n} متاح)',
+    payNow:'ادفع الآن', viewMyCode:'عرض رمزي (لإعطائه للعميل عند الاستلام)', cancelThisTrip:'إلغاء هذه الرحلة',
+    writeOnPackagePrefix:'قبل الاستلام، اكتب على الطرد:', writeOnPackageMiddle:'ومعرّف Baraka GP الخاص بك', writeOnPackageSuffix:'(لا حاجة لكتابة رقم هاتفك).',
+    recipientDefault:'المستلم', askCodeFromTraveler:'اطلب الرمز من المسافر عند الاستلام، للتأكد من هويته.',
+    code4digits:'رمز من 4 أرقام', btnValidate:'تأكيد', cancelAfterPaymentNote:'في حال الإلغاء بعد الدفع، تواصل مع الدعم إذا كنت تنتظر استردادًا.',
+    markAsDelivered:'وضع علامة تم التسليم',
+    appSuggestedLocation:'اقترح التطبيق هذا المكان في منتصف الطريق: تحقق منه (أو عدّله)، أضف الوقت، ثم أكّد لإرساله إلى العميل.',
+    proposeLocationToClient:'اقترح مكانًا ووقتًا للاستلام على العميل.',
+    pickupLocationLabel:'مكان الاستلام', suggestedEditable:' (مقترح، قابل للتعديل)', proposedSuffix:' مقترح',
+    phLocationExample:'مثال: Gare du Nord, باريس', proposedPickupTimeLabel:'وقت الاستلام المقترح',
+    acceptAndProposeToClient:'أوافق على هذا المكان، اقتراحه على العميل', proposeToClient:'اقتراح على العميل',
+    askCodeFromRecipient:'اطلب الرمز المكوّن من 4 أرقام من المستلم عند التسليم، للتأكد من الاستلام.',
+    reviewLinkSentToRecipient:'مراجعة الرابط المُرسل إلى المستلم',
+    travelerHandsToRecipient:'يسلّم المسافر الطرد إلى المستلم، الذي يعطيه رمز الاستلام للتأكيد.',
+    rateThisTraveler:'تقييم هذا المسافر', rateThisClient:'تقييم هذا العميل',
+    travelerRatedLabel:'تقييم المسافر:', clientRatedLabel:'تقييم العميل:',
   },
 };
 let currentLang='fr';
@@ -2497,90 +2539,90 @@ function renderOrderCard(o){
 function renderOrderActions(o){
   if(ordersRole==='gp' && o.status==='pending'){
     return `<div class="admin-actions" style="margin-top:12px;">
-      <button class="btn-approve" onclick="respondOrder('${o.id}','accepted')">Accepter</button>
-      <button class="btn-reject" onclick="respondOrder('${o.id}','refused')">Refuser</button>
+      <button class="btn-approve" onclick="respondOrder('${o.id}','accepted')">${t('btnAccept','Accepter')}</button>
+      <button class="btn-reject" onclick="respondOrder('${o.id}','refused')">${t('btnRefuse','Refuser')}</button>
     </div>`;
   }
   if(ordersRole==='client' && o.status==='accepted'){
     if(!o.pickupLocation || !o.pickupTime){
-      return `<div class="hint" style="margin-top:10px;">Le voyageur a accepté ! ${o.pickupLocation?'Il finalise l\'horaire de prise en charge':'Il propose le lieu et l\'horaire de prise en charge'}, vous serez prévenu(e).</div>
-        <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
+      return `<div class="hint" style="margin-top:10px;">${t('travelerAccepted',"Le voyageur a accepté !")} ${o.pickupLocation?t('finalizingPickupTime',"Il finalise l'horaire de prise en charge"):t('proposingPickupLocation',"Il propose le lieu et l'horaire de prise en charge")}${t('youWillBeNotified',', vous serez prévenu(e).')}</div>
+        <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">${t('btnCancelMyOrder','Annuler ma commande')}</button>`;
     }
     if(!o.pickupTimeAccepted){
-      return `<div class="hint" style="margin-top:10px;">Vérifiez le lieu et l'horaire proposés ci-dessus. S'ils vous conviennent, confirmez pour pouvoir payer.</div>
-        <button class="btn gold sm" onclick="acceptPickupTime('${o.id}')">${ICON_CHECK}J'accepte ce lieu et cet horaire</button>
-        <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
+      return `<div class="hint" style="margin-top:10px;">${t('checkPickupPrompt',"Vérifiez le lieu et l'horaire proposés ci-dessus. S'ils vous conviennent, confirmez pour pouvoir payer.")}</div>
+        <button class="btn gold sm" onclick="acceptPickupTime('${o.id}')">${ICON_CHECK}${t('acceptLocationTime',"J'accepte ce lieu et cet horaire")}</button>
+        <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">${t('btnCancelMyOrder','Annuler ma commande')}</button>`;
     }
     const discounts = me ? availableDiscounts(me.phone) : 0;
-    const discountBox = discounts>0 ? `<label class="check-line" style="background:var(--green-pale);color:var(--green-pale-ink);padding:10px 12px;border-radius:10px;display:block;margin-bottom:8px;"><input type="checkbox" id="useDiscount-${o.id}"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>` : '';
-    return `${discountBox}<button class="btn gold sm" onclick="payOrder('${o.id}')">${ICON_CARD}Payer maintenant</button>
-      <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
+    const discountBox = discounts>0 ? `<label class="check-line" style="background:var(--green-pale);color:var(--green-pale-ink);padding:10px 12px;border-radius:10px;display:block;margin-bottom:8px;"><input type="checkbox" id="useDiscount-${o.id}"> ${t('useDiscountLabel','Utiliser une remise de 5€ (vous en avez {n} disponible{s})').replace('{n}',discounts).replace('{s}',discounts>1?'s':'')}</label>` : '';
+    return `${discountBox}<button class="btn gold sm" onclick="payOrder('${o.id}')">${ICON_CARD}${t('payNow','Payer maintenant')}</button>
+      <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">${t('btnCancelMyOrder','Annuler ma commande')}</button>`;
   }
   if(ordersRole==='gp' && o.status==='paid'){
     const canCancel = canCancelTrip(o);
     return `
-      <button class="btn gold sm" onclick="showPickupCode('${o.id}')">${ICON_KEY}Voir mon code (à donner au client à la prise en charge)</button>
-      ${canCancel ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
+      <button class="btn gold sm" onclick="showPickupCode('${o.id}')">${ICON_KEY}${t('viewMyCode','Voir mon code (à donner au client à la prise en charge)')}</button>
+      ${canCancel ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">${t('cancelThisTrip','Annuler ce trajet')}</button>` : ''}
     `;
   }
   if(ordersRole==='client' && o.status==='paid'){
     const myId=points[ensurePoints(me.phone)].refCode.toUpperCase();
     return `
       <div class="hint" style="margin-top:10px;background:var(--green-pale);color:var(--green-pale-ink);padding:10px 12px;border-radius:10px;">
-        🏷️ Avant la prise en charge, écrivez sur le colis : <b>${esc(me.name)}</b> → <b>${esc(o.recipientName||'destinataire')}</b>, et votre identifiant Baraka GP <b>${myId}</b> (pas besoin d'écrire votre numéro de téléphone).
+        🏷️ ${t('writeOnPackagePrefix','Avant la prise en charge, écrivez sur le colis :')} <b>${esc(me.name)}</b> → <b>${esc(o.recipientName||t('recipientDefault','destinataire'))}</b>, ${t('writeOnPackageMiddle','et votre identifiant Baraka GP')} <b>${myId}</b> ${t('writeOnPackageSuffix',"(pas besoin d'écrire votre numéro de téléphone).")}
       </div>
-      <div class="hint" style="margin-top:10px;">Demandez le code au voyageur au moment de la prise en charge, pour confirmer que c'est bien lui.</div>
+      <div class="hint" style="margin-top:10px;">${t('askCodeFromTraveler',"Demandez le code au voyageur au moment de la prise en charge, pour confirmer que c'est bien lui.")}</div>
       <div style="display:flex;gap:8px;margin-top:6px;">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" id="pickupInput-${o.id}" placeholder="Code à 4 chiffres" maxlength="4" style="flex:1;">
-        <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmPickup('${o.id}')">Valider</button>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" id="pickupInput-${o.id}" placeholder="${t('code4digits','Code à 4 chiffres')}" maxlength="4" style="flex:1;">
+        <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmPickup('${o.id}')">${t('btnValidate','Valider')}</button>
       </div>
-      <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>
-      <div class="hint">En cas d'annulation après paiement, contactez le support si vous attendez un remboursement.</div>
+      <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">${t('btnCancelMyOrder','Annuler ma commande')}</button>
+      <div class="hint">${t('cancelAfterPaymentNote','En cas d\'annulation après paiement, contactez le support si vous attendez un remboursement.')}</div>
     `;
   }
   if(ordersRole==='gp' && o.status==='picked_up'){
     const canCancel = canCancelTrip(o);
-    let html = `<button class="btn sm" onclick="markDelivered('${o.id}')">📦 Marquer comme remis</button>`;
-    if(canCancel) html += `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>`;
+    let html = `<button class="btn sm" onclick="markDelivered('${o.id}')">📦 ${t('markAsDelivered','Marquer comme remis')}</button>`;
+    if(canCancel) html += `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">${t('cancelThisTrip','Annuler ce trajet')}</button>`;
     return html;
   }
   if(ordersRole==='gp' && o.status==='accepted' && (!o.pickupLocation || !o.pickupTime)){
     return `
-      <div class="hint" style="margin-top:10px;">${o.pickupSuggested ? "L'app a suggéré ce lieu à mi-chemin : vérifiez-le (ou modifiez-le), ajoutez l'horaire, puis validez pour l'envoyer au client." : "Proposez un lieu et un horaire de prise en charge au client."}</div>
-      <label>Lieu de prise en charge${o.pickupSuggested?' (suggéré, modifiable)':' proposé'}</label>
-      <input type="text" id="gpPickupLoc-${o.id}" placeholder="Ex. Gare du Nord, Paris" value="${(o.pickupLocation||'').replace(/"/g,'&quot;')}">
-      <label>Horaire de prise en charge proposé</label>
+      <div class="hint" style="margin-top:10px;">${o.pickupSuggested ? t('appSuggestedLocation',"L'app a suggéré ce lieu à mi-chemin : vérifiez-le (ou modifiez-le), ajoutez l'horaire, puis validez pour l'envoyer au client.") : t('proposeLocationToClient',"Proposez un lieu et un horaire de prise en charge au client.")}</div>
+      <label>${t('pickupLocationLabel','Lieu de prise en charge')}${o.pickupSuggested?t('suggestedEditable',' (suggéré, modifiable)'):t('proposedSuffix',' proposé')}</label>
+      <input type="text" id="gpPickupLoc-${o.id}" placeholder="${t('phLocationExample','Ex. Gare du Nord, Paris')}" value="${(o.pickupLocation||'').replace(/"/g,'&quot;')}">
+      <label>${t('proposedPickupTimeLabel','Horaire de prise en charge proposé')}</label>
       <input type="datetime-local" id="gpPickupTime-${o.id}" max="${o.tripDate}T23:59">
-      <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">${ICON_CHECK}${o.pickupSuggested?"J'accepte ce lieu, proposer au client":"Proposer au client"}</button>
-      ${canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
+      <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">${ICON_CHECK}${o.pickupSuggested?t('acceptAndProposeToClient',"J'accepte ce lieu, proposer au client"):t('proposeToClient','Proposer au client')}</button>
+      ${canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">${t('cancelThisTrip','Annuler ce trajet')}</button>` : ''}
     `;
   }
   if(ordersRole==='gp' && ['accepted'].includes(o.status)){
-    return canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : '';
+    return canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">${t('cancelThisTrip','Annuler ce trajet')}</button>` : '';
   }
   if(ordersRole==='gp' && o.status==='delivered'){
     return `
-      <div class="hint" style="margin-top:10px;">Demandez le code à 4 chiffres au destinataire au moment de la remise, pour confirmer la réception.</div>
+      <div class="hint" style="margin-top:10px;">${t('askCodeFromRecipient','Demandez le code à 4 chiffres au destinataire au moment de la remise, pour confirmer la réception.')}</div>
       <div style="display:flex;gap:8px;margin-top:6px;">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" id="codeInput-${o.id}" placeholder="Code à 4 chiffres" maxlength="4" style="flex:1;">
-        <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmDelivery('${o.id}')">Valider</button>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" id="codeInput-${o.id}" placeholder="${t('code4digits','Code à 4 chiffres')}" maxlength="4" style="flex:1;">
+        <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmDelivery('${o.id}')">${t('btnValidate','Valider')}</button>
       </div>
-      <button class="btn ghost sm" onclick="showDeliveryCode('${o.id}')" style="margin-top:8px;">📋 Revoir le lien envoyé au destinataire</button>
+      <button class="btn ghost sm" onclick="showDeliveryCode('${o.id}')" style="margin-top:8px;">📋 ${t('reviewLinkSentToRecipient','Revoir le lien envoyé au destinataire')}</button>
     `;
   }
   if(ordersRole==='client' && o.status==='delivered'){
-    return `<div class="hint" style="margin-top:10px;">Le voyageur remet le colis au destinataire, qui lui communique son code de réception pour confirmer.</div>`;
+    return `<div class="hint" style="margin-top:10px;">${t('travelerHandsToRecipient','Le voyageur remet le colis au destinataire, qui lui communique son code de réception pour confirmer.')}</div>`;
   }
   if(ordersRole==='client' && o.status==='completed' && !o.rating){
-    return `<button class="btn ghost sm" onclick="openRating('${o.id}','gp')">⭐ Noter ce voyageur</button>`;
+    return `<button class="btn ghost sm" onclick="openRating('${o.id}','gp')">⭐ ${t('rateThisTraveler','Noter ce voyageur')}</button>`;
   }
   if(ordersRole==='gp' && o.status==='completed' && !o.clientRating){
-    return `<button class="btn ghost sm" onclick="openRating('${o.id}','client')">⭐ Noter ce client</button>`;
+    return `<button class="btn ghost sm" onclick="openRating('${o.id}','client')">⭐ ${t('rateThisClient','Noter ce client')}</button>`;
   }
   if(o.status==='completed' && (o.rating || o.clientRating)){
     let html='';
-    if(o.rating) html+=`<div class="hint" style="margin-top:10px;">Voyageur noté : ${starsHtml(o.rating)}${o.ratingComment?' — "'+esc(o.ratingComment)+'"':''}</div>`;
-    if(o.clientRating) html+=`<div class="hint" style="margin-top:6px;">Client noté : ${starsHtml(o.clientRating)}${o.clientRatingComment?' — "'+esc(o.clientRatingComment)+'"':''}</div>`;
+    if(o.rating) html+=`<div class="hint" style="margin-top:10px;">${t('travelerRatedLabel','Voyageur noté :')} ${starsHtml(o.rating)}${o.ratingComment?' — "'+esc(o.ratingComment)+'"':''}</div>`;
+    if(o.clientRating) html+=`<div class="hint" style="margin-top:6px;">${t('clientRatedLabel','Client noté :')} ${starsHtml(o.clientRating)}${o.clientRatingComment?' — "'+esc(o.clientRatingComment)+'"':''}</div>`;
     return html;
   }
   return '';
