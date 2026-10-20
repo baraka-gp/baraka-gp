@@ -493,6 +493,7 @@ function renderAdminOrders(){
         ${needsReview ? `<button class="btn-approve" onclick="markOrderSeen('${o.id}')">Marquer comme traité</button>` : ''}
         ${['refused','cancelled_gp','cancelled_client','expired'].includes(o.status) ? '' : `<button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>`}
         ${(o.stripePaymentIntentId && !o.refunded) ? `<button class="btn-reject" onclick="refundOrder('${o.id}')" id="refundBtn_${o.id}">💳 Rembourser le client</button>` : ''}
+        ${(o.status==='completed' && !o.transferred) ? `<button class="btn-approve" onclick="retryTransfer('${o.id}')" id="retryBtn_${o.id}">🔁 Réessayer le virement</button>` : ''}
         <button class="btn-reject" onclick="removeOrder('${o.id}')">Supprimer la commande</button>
       </div>
     </div>`;
@@ -513,6 +514,20 @@ async function refundOrder(orderId){
   }catch(e){
     showToast("Échec du remboursement : "+(e.message||'réessayez'));
     if(btn){ btn.disabled=false; btn.textContent='💳 Rembourser le client'; }
+  }
+}
+async function retryTransfer(orderId){
+  const btn=document.getElementById('retryBtn_'+orderId);
+  if(btn){ btn.disabled=true; btn.textContent='Virement en cours...'; }
+  try{
+    const retry=cloudFunctions.httpsCallable('retryTransfer');
+    await withTimeout(retry({orderId}), 15000);
+    showToast("Virement effectué !");
+    await loadAll();
+    renderAdminOrders();
+  }catch(e){
+    showToast("Échec du virement : "+(e.message||'réessayez'));
+    if(btn){ btn.disabled=false; btn.textContent='🔁 Réessayer le virement'; }
   }
 }
 async function deleteOrderRating(orderId){

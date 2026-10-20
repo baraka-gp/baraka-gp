@@ -312,36 +312,65 @@ exports.stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecr
 // Dès qu'une commande passe à "completed" (réception confirmée par le
 // destinataire ou le voyageur), on reverse au voyageur sa part (priceNet),
 // une seule fois — jamais avant, c'est tout l'intérêt de la retenue.
+// Partagé par le déclenchement automatique (transferToTraveler) et le
+// réessai manuel depuis admin.html (retryTransfer) — même logique, pour ne
+// jamais avoir deux façons différentes de faire le même virement.
+async function performTransfer(orderId, orderRef, order) {
+  if (order.transferred) return { alreadyDone: true };
+  const gpPhone = cleanPhone(order.gpPhone);
+  const profileSnap = await db.collection('profiles').doc(gpPhone).get();
+  const stripeAccountId = profileSnap.exists ? profileSnap.data().stripeAccountId : null;
+  if (!stripeAccountId) {
+    const message = "Le voyageur n'a pas de compte Stripe configuré";
+    await orderRef.set({ transferError: message }, { merge: true });
+    return { error: message };
+  }
+
+  const stripe = getStripe();
+  const amountCents = Math.round((order.priceNet || 0) * 100);
+  try {
+    const transfer = await stripe.transfers.create({
+      amount: amountCents,
+      currency: 'eur',
+      destination: stripeAccountId,
+      transfer_group: orderId,
+      metadata: { orderId },
+    });
+    await orderRef.set({ transferred: true, transferId: transfer.id, transferredAt: Date.now(), transferError: admin.firestore.FieldValue.delete() }, { merge: true });
+    return { transferId: transfer.id };
+  } catch (err) {
+    await orderRef.set({ transferError: err.message }, { merge: true });
+    return { error: err.message };
+  }
+}
+
 exports.transferToTraveler = onDocumentUpdated({ document: 'orders/{orderId}', secrets: [stripeSecretKey], region: REGION }, async (event) => {
   const before = event.data.before.data();
   const after = event.data.after.data();
   if (before.status === 'completed' || after.status !== 'completed') return;
   if (after.transferred) return;
   if (!after.gpPhone || !after.priceNet) return;
+  await performTransfer(event.params.orderId, event.data.after.ref, after);
+});
 
-  const orderRef = event.data.after.ref;
-  const gpPhone = cleanPhone(after.gpPhone);
-  const profileSnap = await db.collection('profiles').doc(gpPhone).get();
-  const stripeAccountId = profileSnap.exists ? profileSnap.data().stripeAccountId : null;
-  if (!stripeAccountId) {
-    await orderRef.set({ transferError: "Le voyageur n'a pas de compte Stripe configuré" }, { merge: true });
-    return;
+// Réessaie manuellement un virement qui a échoué (ex. le voyageur a
+// configuré son compte Stripe après coup) — bouton "Réessayer le virement"
+// dans admin.html, pour éviter d'avoir à faire un virement à la main
+// depuis le tableau de bord Stripe.
+exports.retryTransfer = onCall({ secrets: [stripeSecretKey], region: REGION }, async (request) => {
+  if (!request.auth || !(await isAdminUid(request.auth.uid))) {
+    throw new HttpsError('permission-denied', 'Réservé aux administrateurs');
   }
-
-  const stripe = getStripe();
-  const amountCents = Math.round(after.priceNet * 100);
-  try {
-    const transfer = await stripe.transfers.create({
-      amount: amountCents,
-      currency: 'eur',
-      destination: stripeAccountId,
-      transfer_group: event.params.orderId,
-      metadata: { orderId: event.params.orderId },
-    });
-    await orderRef.set({ transferred: true, transferId: transfer.id, transferredAt: Date.now(), transferError: admin.firestore.FieldValue.delete() }, { merge: true });
-  } catch (err) {
-    await orderRef.set({ transferError: err.message }, { merge: true });
-  }
+  const orderId = request.data && request.data.orderId;
+  if (!orderId) throw new HttpsError('invalid-argument', 'Commande manquante');
+  const orderRef = db.collection('orders').doc(orderId);
+  const snap = await orderRef.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Commande introuvable');
+  const order = snap.data();
+  if (order.status !== 'completed') throw new HttpsError('failed-precondition', "Cette commande n'est pas terminée");
+  const result = await performTransfer(orderId, orderRef, order);
+  if (result.error) throw new HttpsError('internal', result.error);
+  return result;
 });
 
 // Rembourse un client (admin uniquement), via un vrai remboursement Stripe
