@@ -99,6 +99,20 @@ async function sendEmail(to, subject, html) {
 
 const EMAIL_SECRETS = [gmailUser, gmailAppPassword];
 const APP_URL = 'https://laminecamara251005-wq.github.io/baraka-gp/index.html';
+const ADMIN_URL = 'https://laminecamara251005-wq.github.io/baraka-gp/admin.html';
+
+// Envoie un email à l'admin (compte propriétaire) — pour le prévenir d'un
+// nouvel élément à modérer plutôt qu'il doive penser à revérifier
+// admin.html régulièrement. Récupère son email depuis Firebase Auth plutôt
+// que de le coder en dur ici.
+async function notifyAdmin(subject, html) {
+  try {
+    const user = await admin.auth().getUser(OWNER_UID);
+    if (user.email) await sendEmail(user.email, subject, html);
+  } catch (err) {
+    console.error('notifyAdmin: échec', err.message);
+  }
+}
 
 // Découpe un nom complet en prénom / nom, pour pré-remplir Stripe avec ce
 // qu'on a déjà collecté à l'inscription (évite de ressaisir l'identité).
@@ -641,6 +655,45 @@ exports.applyOrderRating = onDocumentUpdated({ document: 'orders/{orderId}', reg
       tx.set(ref, data, { merge: true });
     });
   }
+});
+
+// Alerte l'admin par email dès qu'un nouveau voyageur publie son premier
+// trajet (pièce d'identité en attente de vérification) — évite de compter
+// sur une visite régulière d'admin.html pour s'en rendre compte.
+exports.notifyAdminNewProfile = onDocumentCreated({ document: 'profiles/{phone}', secrets: EMAIL_SECRETS, region: REGION }, async (event) => {
+  const profile = event.data.data();
+  if (profile.verified) return;
+  await notifyAdmin(
+    '🧳 Nouveau voyageur à vérifier sur Baraka GP',
+    `<p><b>${profile.name || 'Un voyageur'}</b> vient de publier son premier trajet et attend la vérification de son identité.</p>
+     <p><a href="${ADMIN_URL}">Ouvrir l'admin</a> pour vérifier.</p>`
+  );
+});
+
+// Pareil pour une nouvelle demande de colis (modération de contenu, pas
+// d'identité) — voir admin.html / setColisVerified.
+exports.notifyAdminNewColisListing = onDocumentCreated({ document: 'listings/{id}', secrets: EMAIL_SECRETS, region: REGION }, async (event) => {
+  const listing = event.data.data();
+  if (listing.type !== 'colis' || listing.verified) return;
+  await notifyAdmin(
+    '📦 Nouvelle demande de colis à vérifier sur Baraka GP',
+    `<p><b>${listing.name || 'Un client'}</b> a publié une demande d'envoi (${listing.from} → ${listing.to}) qui attend vérification.</p>
+     <p><a href="${ADMIN_URL}">Ouvrir l'admin</a> pour vérifier.</p>`
+  );
+});
+
+// Alerte l'admin dès qu'un virement au voyageur échoue (ex. compte Stripe
+// pas configuré) — jusqu'ici visible uniquement en ouvrant admin.html.
+exports.notifyAdminTransferIssue = onDocumentUpdated({ document: 'orders/{orderId}', secrets: EMAIL_SECRETS, region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  if (!after.transferError || after.transferError === before.transferError) return;
+  await notifyAdmin(
+    "⚠️ Échec d'un virement voyageur sur Baraka GP",
+    `<p>Le virement pour la commande <b>${event.params.orderId}</b> (${after.from} → ${after.to}) a échoué :</p>
+     <p>${after.transferError}</p>
+     <p><a href="${ADMIN_URL}">Ouvrir l'admin</a> pour vérifier.</p>`
+  );
 });
 
 // Notification push pour la messagerie support (admin → utilisateur). Pas
