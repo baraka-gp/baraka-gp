@@ -2002,6 +2002,17 @@ document.addEventListener('focusout', e=>{
   if(isProtectedField(e.target)) chatFocused=false;
 });
 function isTypingInChat(){ return chatFocused; }
+let lastPollSig=null;
+// Résumé léger de ce qui peut changer d'un sondage à l'autre, sans jamais
+// inclure les champs volumineux (photo, pièce d'identité...) — sinon cette
+// fonction, appelée toutes les 4s, recopierait ces images en mémoire à
+// chaque fois pour rien.
+function pollSig(){
+  const o=orders.map(x=>[x.id,x.status,x.pickupLocation,x.pickupTime,x.pickupTimeAccepted,x.rating,x.clientRating,x.transferred].join(',')).join('|');
+  const m=Object.keys(orderMsgs).map(k=>{ const th=orderMsgs[k]||[]; return k+':'+th.length+':'+(th.length?th[th.length-1].ts:0); }).join('|');
+  const l=listings.map(x=>[x.id,x.verified,x.kg].join(',')).join('|');
+  return o+'##'+m+'##'+l;
+}
 function startPolling(){
   stopPolling();
   pollTimer=setInterval(async ()=>{
@@ -2017,11 +2028,21 @@ function startPolling(){
     // clavier et efface le texte en cours (les champs de chat sont recréés à
     // chaque rendu de la liste des commandes).
     if(isTypingInChat()){ updateNotifBadge(); return; }
-    if(document.getElementById('viewSearch').style.display==='block') renderResults();
+    // Ne reconstruire les listes (et donc les fils de discussion, recréés en
+    // DOM à chaque fois) que si quelque chose a vraiment changé depuis le
+    // dernier sondage — sinon ça redescendait le défilement d'un chat en bas
+    // toutes les 4 secondes, perçu comme un écran qui "vibre" pendant la
+    // lecture d'un message.
+    const sig=pollSig();
+    const changed = sig!==lastPollSig;
+    lastPollSig=sig;
+    if(changed){
+      if(document.getElementById('viewSearch').style.display==='block') renderResults();
+      if(document.getElementById('viewOrders').style.display==='block') renderOrders();
+      if(document.getElementById('viewMytrips').style.display==='block') renderMyTrips();
+      if(document.getElementById('viewMydemandes').style.display==='block') renderMyDemandes();
+    }
     if(document.getElementById('viewMessages').style.display==='block') renderThread();
-    if(document.getElementById('viewOrders').style.display==='block') renderOrders();
-    if(document.getElementById('viewMytrips').style.display==='block') renderMyTrips();
-    if(document.getElementById('viewMydemandes').style.display==='block') renderMyDemandes();
     updateNotifBadge();
     checkTripReminders();
   }, 4000);
@@ -2107,15 +2128,31 @@ async function pushMessage(phone,from,text){
   if(from==='user') messages[key].unreadAdmin=true;
   await saveMessages();
 }
+// Partagé par tous les fils de discussion (support, commande, destinataire) :
+// évite de reconstruire le DOM et de faire sauter le défilement en bas
+// toutes les 4s (polling) quand rien n'a réellement changé dans le fil —
+// c'était perçu comme un "écran qui vibre" pendant la lecture d'un message.
+// Quand il y a du nouveau, on ne redescend en bas que si on y était déjà
+// (on ne coupe pas la lecture de quelqu'un remonté dans l'historique).
+function renderChatBox(box, thread, emptyHtml, bubbleHtml){
+  if(!box) return;
+  const sig = thread.length+':'+(thread.length ? thread[thread.length-1].ts : 0);
+  if(box.dataset.chatSig===sig) return;
+  const firstRender = box.dataset.chatSig===undefined;
+  const wasNearBottom = firstRender || (box.scrollHeight-box.scrollTop-box.clientHeight<40);
+  box.innerHTML = thread.length===0 ? emptyHtml : thread.map(bubbleHtml).join('');
+  box.dataset.chatSig = sig;
+  if(wasNearBottom) box.scrollTop = box.scrollHeight;
+}
 function renderThread(){
   if(!me) return;
   const key=cleanPhone(me.phone);
   const box=document.getElementById('chatThread');
   const th=messages[key]?messages[key].thread:[];
-  box.innerHTML = th.length===0
-    ? `<p style="color:var(--ink-soft);font-size:13px;text-align:center;padding:16px 0;">${t('noMessagesWriteUs','Aucun message. Écrivez-nous !')}</p>`
-    : th.map(m=>`<div class="bubble ${m.from==='user'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
-  box.scrollTop=box.scrollHeight;
+  renderChatBox(box, th,
+    `<p style="color:var(--ink-soft);font-size:13px;text-align:center;padding:16px 0;">${t('noMessagesWriteUs','Aucun message. Écrivez-nous !')}</p>`,
+    m=>`<div class="bubble ${m.from==='user'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`
+  );
 }
 async function sendUserMessage(){
   const text=document.getElementById('chatInput').value.trim();
@@ -2956,12 +2993,11 @@ async function submitRating(){
 // ---- ORDER CHAT ----
 function renderOrderChat(orderId){
   const box=document.getElementById('oc-'+orderId);
-  if(!box) return;
   const th=orderMsgs[orderId]||[];
-  box.innerHTML = th.length===0
-    ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">${t('noMessages','Aucun message.')}</p>`
-    : th.map(m=>`<div class="bubble ${m.from===ordersRole?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
-  box.scrollTop=box.scrollHeight;
+  renderChatBox(box, th,
+    `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">${t('noMessages','Aucun message.')}</p>`,
+    m=>`<div class="bubble ${m.from===ordersRole?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`
+  );
 }
 async function sendOrderMessage(orderId){
   const input=document.getElementById('oci-'+orderId);
@@ -2976,12 +3012,11 @@ async function sendOrderMessage(orderId){
 // ---- CHAT AVEC LE DESTINATAIRE (voyageur ↔ destinataire sans compte) ----
 function renderRecipientChat(orderId){
   const box=document.getElementById('rc-'+orderId);
-  if(!box) return;
   const th=orderMsgs[orderId+'_recipient']||[];
-  box.innerHTML = th.length===0
-    ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">${t('noMessages','Aucun message.')}</p>`
-    : th.map(m=>`<div class="bubble ${m.from===ordersRole?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
-  box.scrollTop=box.scrollHeight;
+  renderChatBox(box, th,
+    `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">${t('noMessages','Aucun message.')}</p>`,
+    m=>`<div class="bubble ${m.from===ordersRole?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`
+  );
 }
 async function sendRecipientMessage(orderId){
   const input=document.getElementById('rci-'+orderId);
@@ -3380,10 +3415,10 @@ async function loadReceiveChat(orderId){
   try{
     const snap=await withTimeout(db.collection('orderMsgs').doc(orderId+'_recipient').get(), 8000);
     const thread=(snap.exists && snap.data().thread) || [];
-    el.innerHTML = thread.length===0
-      ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:6px 0;">${t('noMessages','Aucun message.')}</p>`
-      : thread.map(m=>`<div class="bubble ${m.from==='recipient'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
-    el.scrollTop = el.scrollHeight;
+    renderChatBox(el, thread,
+      `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:6px 0;">${t('noMessages','Aucun message.')}</p>`,
+      m=>`<div class="bubble ${m.from==='recipient'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`
+    );
   }catch(e){}
 }
 async function sendReceiveMessage(orderId){
