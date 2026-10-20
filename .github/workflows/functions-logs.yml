@@ -220,7 +220,13 @@ jobs:
             [ -z "$ACCT" ] && continue
             echo "=== $NAME ($PHONE) — $ACCT — profils.stripeOnboarded=$ONBOARDED ==="
             curl -sS https://api.stripe.com/v1/accounts/$ACCT -u "$STRIPE_SECRET_KEY:" -o /tmp/acct-$ACCT.json
-            jq '{id, charges_enabled, payouts_enabled, details_submitted, requirements: {currently_due, disabled_reason}}' /tmp/acct-$ACCT.json
+            jq '{id, charges_enabled, payouts_enabled, details_submitted, requirements: {currently_due, disabled_reason}, payout_schedule: .settings.payouts}' /tmp/acct-$ACCT.json
+            echo "--- Solde (disponible / en attente) ---"
+            curl -sS https://api.stripe.com/v1/balance -u "$STRIPE_SECRET_KEY:" -H "Stripe-Account: $ACCT" -o /tmp/bal-$ACCT.json
+            jq '{available, pending}' /tmp/bal-$ACCT.json
+            echo "--- Virements externes (cartes/IBAN) ---"
+            curl -sS "https://api.stripe.com/v1/accounts/$ACCT/external_accounts" -u "$STRIPE_SECRET_KEY:" -o /tmp/ext-$ACCT.json
+            jq '.data[] | {object, id, default_for_currency, available_payout_methods: (.available_payout_methods // null)}' /tmp/ext-$ACCT.json
           done < /tmp/accounts.txt
 
       - name: Lister les webhooks Stripe enregistrés
