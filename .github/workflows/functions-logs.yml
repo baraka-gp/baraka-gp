@@ -57,6 +57,12 @@ on:
       add_recaptcha_domain:
         description: 'Domaine à ajouter aux domaines autorisés de toutes les clés reCAPTCHA Enterprise, ex baraka-gp.github.io (laisser vide pour ne rien faire)'
         required: false
+      check_api_key_restrictions:
+        description: 'Vérifier les restrictions (referrers HTTP autorisés) de la clé API Firebase du site (oui/non)'
+        required: false
+      add_api_key_referrer:
+        description: 'Motif de referrer HTTP à ajouter à la clé API Firebase, ex https://baraka-gp.github.io/* (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -384,6 +390,73 @@ jobs:
               -d "{\"webSettings\": $(cat /tmp/key-body.json)}" \
               -o /tmp/key-updated.json
             jq '{name, webSettings}' /tmp/key-updated.json
+          done < /tmp/key_names.txt
+
+      - name: Vérifier les restrictions de la clé API Firebase
+        if: inputs.check_api_key_restrictions != ''
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          FIREBASE_KEY="AIzaSyD67E8efC3xhu2Uavp3htKhDnOjZDkRz94"
+          curl -sS "https://apikeys.googleapis.com/v2/projects/baraka-gp/locations/global/keys" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/apikeys.json
+          echo "=== Clés API du projet ==="
+          cat /tmp/apikeys.json
+          jq -r '.keys[]?.name // empty' /tmp/apikeys.json > /tmp/key_names.txt
+          while IFS= read -r KEYNAME; do
+            [ -z "$KEYNAME" ] && continue
+            curl -sS "https://apikeys.googleapis.com/v2/$KEYNAME/keyString" -H "Authorization: Bearer $TOKEN" -o /tmp/ks.json
+            KS=$(jq -r '.keyString // empty' /tmp/ks.json)
+            if [ "$KS" = "$FIREBASE_KEY" ]; then
+              echo "=== Clé utilisée par l'app trouvée : $KEYNAME ==="
+              curl -sS "https://apikeys.googleapis.com/v2/$KEYNAME" -H "Authorization: Bearer $TOKEN" -o /tmp/keydetail.json
+              jq '{name, displayName, restrictions}' /tmp/keydetail.json
+            fi
+          done < /tmp/key_names.txt
+
+      - name: Ajouter un referrer autorisé à la clé API Firebase
+        if: inputs.add_api_key_referrer != ''
+        env:
+          REFERRER: ${{ inputs.add_api_key_referrer }}
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          FIREBASE_KEY="AIzaSyD67E8efC3xhu2Uavp3htKhDnOjZDkRz94"
+          curl -sS "https://apikeys.googleapis.com/v2/projects/baraka-gp/locations/global/keys" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/apikeys.json
+          jq -r '.keys[]?.name // empty' /tmp/apikeys.json > /tmp/key_names.txt
+          while IFS= read -r KEYNAME; do
+            [ -z "$KEYNAME" ] && continue
+            curl -sS "https://apikeys.googleapis.com/v2/$KEYNAME/keyString" -H "Authorization: Bearer $TOKEN" -o /tmp/ks.json
+            KS=$(jq -r '.keyString // empty' /tmp/ks.json)
+            if [ "$KS" = "$FIREBASE_KEY" ]; then
+              echo "=== Mise à jour de $KEYNAME ==="
+              curl -sS "https://apikeys.googleapis.com/v2/$KEYNAME" -H "Authorization: Bearer $TOKEN" -o /tmp/keydetail.json
+              echo "--- Avant ---"
+              jq '{restrictions}' /tmp/keydetail.json
+              node -e "
+                const key = JSON.parse(require('fs').readFileSync('/tmp/keydetail.json', 'utf8'));
+                const restrictions = key.restrictions || {};
+                if (!restrictions.browserKeyRestrictions) {
+                  console.log('Pas de restriction de referrer sur cette clé : rien à faire.');
+                  process.exit(0);
+                }
+                const referrers = new Set(restrictions.browserKeyRestrictions.allowedReferrers || []);
+                referrers.add(process.env.REFERRER);
+                restrictions.browserKeyRestrictions.allowedReferrers = [...referrers];
+                require('fs').writeFileSync('/tmp/restrictions-body.json', JSON.stringify(restrictions));
+              "
+              if [ -f /tmp/restrictions-body.json ]; then
+                curl -sS -X PATCH "https://apikeys.googleapis.com/v2/$KEYNAME?updateMask=restrictions" \
+                  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+                  -d "{\"restrictions\": $(cat /tmp/restrictions-body.json)}" \
+                  -o /tmp/keyupdated.json
+                echo "--- Après ---"
+                jq '{restrictions}' /tmp/keyupdated.json
+              fi
+            fi
           done < /tmp/key_names.txt
 
       - name: Corriger manuellement stripeOnboarded sur un profil
