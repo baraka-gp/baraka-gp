@@ -69,6 +69,9 @@ on:
       allow_app_countries_sms:
         description: 'Autoriser l envoi de SMS uniquement vers les pays desservis par l app (FR, MR, SN, ML, EG, SA) (oui/non)'
         required: false
+      check_url:
+        description: 'URL à vérifier (code HTTP), ex pour confirmer qu une ressource CDN existe (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -497,6 +500,11 @@ jobs:
           echo "=== Politique régionale SMS après ==="
           jq '.smsRegionConfig' /tmp/updated.json
           cat /tmp/updated.json
+
+      - name: Vérifier une URL (code HTTP)
+        if: inputs.check_url != ''
+        run: |
+          curl -sS -o /dev/null -w "HTTP %{http_code}\n" "${{ inputs.check_url }}"
 
       - name: Corriger manuellement stripeOnboarded sur un profil
         if: inputs.fix_profile_onboarded != ''
