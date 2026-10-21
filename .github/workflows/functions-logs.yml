@@ -63,6 +63,12 @@ on:
       add_api_key_referrer:
         description: 'Motif de referrer HTTP à ajouter à la clé API Firebase, ex https://baraka-gp.github.io/* (laisser vide pour ne rien faire)'
         required: false
+      check_sms_region_policy:
+        description: 'Vérifier la politique régionale SMS de Firebase Auth (oui/non)'
+        required: false
+      allow_app_countries_sms:
+        description: 'Autoriser l envoi de SMS uniquement vers les pays desservis par l app (FR, MR, SN, ML, EG, SA) (oui/non)'
+        required: false
 
 permissions:
   contents: read
@@ -458,6 +464,39 @@ jobs:
               fi
             fi
           done < /tmp/key_names.txt
+
+      - name: Vérifier la politique régionale SMS
+        if: inputs.check_sms_region_policy != ''
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          curl -sS "https://identitytoolkit.googleapis.com/admin/v2/projects/baraka-gp/config" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/authconfig.json
+          echo "=== Config complète (extrait SMS/recaptcha) ==="
+          jq '{smsRegionConfig, recaptchaConfig: (.recaptchaConfig // "absent"), authorizedDomains}' /tmp/authconfig.json
+
+      - name: Autoriser les SMS pour les pays desservis par l'app
+        if: inputs.allow_app_countries_sms != ''
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          curl -sS "https://identitytoolkit.googleapis.com/admin/v2/projects/baraka-gp/config" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/authconfig.json
+          echo "=== Politique régionale SMS avant ==="
+          jq '.smsRegionConfig' /tmp/authconfig.json
+          # France, Mauritanie, Sénégal, Mali, Égypte, Arabie Saoudite — les
+          # seuls pays desservis par Baraka GP (liste restreinte volontaire,
+          # pas une ouverture à tous les pays, pour limiter le risque de
+          # fraude à l'envoi de SMS).
+          curl -sS -X PATCH "https://identitytoolkit.googleapis.com/admin/v2/projects/baraka-gp/config?updateMask=smsRegionConfig" \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d '{"smsRegionConfig": {"allowlistOnly": {"allowedRegions": ["FR","MR","SN","ML","EG","SA"]}}}' \
+            -o /tmp/updated.json
+          echo "=== Politique régionale SMS après ==="
+          jq '.smsRegionConfig' /tmp/updated.json
+          cat /tmp/updated.json
 
       - name: Corriger manuellement stripeOnboarded sur un profil
         if: inputs.fix_profile_onboarded != ''
