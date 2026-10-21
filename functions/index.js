@@ -125,7 +125,7 @@ function splitName(fullName) {
 // Crée (si besoin) le compte Stripe Express d'un voyageur et renvoie son id
 // — partagé par les deux façons de compléter sa fiche (identité, IBAN) :
 // lien Stripe classique (redirection) ou composant intégré (sur place).
-async function getOrCreateExpressAccount(stripe, phone, name, email) {
+async function getOrCreateExpressAccount(stripe, phone, name, email, phoneE164) {
   const profileRef = db.collection('profiles').doc(phone);
   const profileSnap = await profileRef.get();
   let accountId = profileSnap.exists ? profileSnap.data().stripeAccountId : null;
@@ -148,11 +148,13 @@ async function getOrCreateExpressAccount(stripe, phone, name, email) {
       },
       // Pré-remplit ce qu'on a déjà (saisi à l'inscription dans l'appli),
       // pour que le voyageur n'ait pas à le retaper sur le formulaire Stripe.
+      // Stripe exige le format international (+33...) : le numéro local
+      // nettoyé (ex. "0626141733") est rejeté comme "invalid phone number".
       individual: {
         first_name: firstName,
         last_name: lastName,
         email: email || undefined,
-        phone: phone || undefined,
+        phone: phoneE164 || undefined,
       },
     });
     accountId = account.id;
@@ -169,10 +171,11 @@ exports.createConnectOnboardingLink = onCall({ secrets: [stripeSecretKey], regio
   if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
   const name = request.data && request.data.name;
   const email = request.data && request.data.email;
+  const phoneE164 = request.auth.token.phone_number || undefined;
 
   try {
     const stripe = getStripe();
-    const accountId = await getOrCreateExpressAccount(stripe, phone, name, email);
+    const accountId = await getOrCreateExpressAccount(stripe, phone, name, email, phoneE164);
 
     const origin = (request.data && request.data.origin) || 'https://baraka-gp.github.io/baraka-gp';
     const accountLink = await stripe.accountLinks.create({
@@ -197,10 +200,11 @@ exports.createAccountSession = onCall({ secrets: [stripeSecretKey], region: REGI
   if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
   const name = request.data && request.data.name;
   const email = request.data && request.data.email;
+  const phoneE164 = request.auth.token.phone_number || undefined;
 
   try {
     const stripe = getStripe();
-    const accountId = await getOrCreateExpressAccount(stripe, phone, name, email);
+    const accountId = await getOrCreateExpressAccount(stripe, phone, name, email, phoneE164);
 
     const accountSession = await stripe.accountSessions.create({
       account: accountId,
