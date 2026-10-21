@@ -1676,6 +1676,10 @@ async function authSubmit(){
           if(snap.exists) acc=snap.data();
           else await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000);
         }catch(e){ /* Firestore lent ou indisponible : on continue quand même avec les infos saisies */ }
+        // Un compte existant issu d'une tentative antérieure (avant l'ajout du
+        // champ phoneE164, ou créé par un autre chemin) peut ne pas l'avoir :
+        // sans ça, l'envoi du SMS plante avec un numéro undefined.
+        if(!acc.phoneE164) acc.phoneE164=phoneE164;
         if(acc.phoneVerified){
           // Compte déjà vérifié lors d'une tentative précédente interrompue
           // juste après (pas besoin de renvoyer un SMS).
