@@ -72,6 +72,9 @@ on:
       check_url:
         description: 'URL à vérifier (code HTTP), ex pour confirmer qu une ressource CDN existe (laisser vide pour ne rien faire)'
         required: false
+      find_last_order:
+        description: 'Numéros client|voyageur (format Firestore, ex 0626141733|0749392022) pour retrouver leur dernière commande (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -505,6 +508,30 @@ jobs:
         if: inputs.check_url != ''
         run: |
           curl -sS -o /dev/null -w "HTTP %{http_code}\n" "${{ inputs.check_url }}"
+
+      - name: Retrouver la dernière commande entre deux numéros
+        if: inputs.find_last_order != ''
+        env:
+          PAIR: ${{ inputs.find_last_order }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const [clientPhone, gpPhone] = process.env.PAIR.split('|').map(s => s.trim());
+              const snap = await admin.firestore().collection('orders')
+                .where('clientPhone', '==', clientPhone)
+                .where('gpPhone', '==', gpPhone)
+                .get();
+              const orders = [];
+              snap.forEach(doc => orders.push({ id: doc.id, ...doc.data() }));
+              orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+              console.log('Commandes trouvées :', orders.length);
+              console.log(JSON.stringify(orders, null, 2));
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
 
       - name: Corriger manuellement stripeOnboarded sur un profil
         if: inputs.fix_profile_onboarded != ''
