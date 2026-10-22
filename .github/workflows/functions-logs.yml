@@ -529,7 +529,16 @@ jobs:
               snap.forEach(doc => orders.push({ id: doc.id, ...doc.data() }));
               orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
               console.log('Commandes trouvées :', orders.length);
-              console.log(JSON.stringify(orders, null, 2));
+              const skip = ['photo', 'weightProof', 'idPhoto', 'signature'];
+              orders.forEach(o => {
+                console.log('=== ORDER ===');
+                Object.keys(o).sort().forEach(k => {
+                  if (skip.includes(k)) { console.log(k + ' = [omis]'); return; }
+                  let v = o[k];
+                  if (typeof v === 'string' && v.length > 300) v = v.slice(0, 300) + '...[tronqué]';
+                  console.log(k + ' = ' + JSON.stringify(v));
+                });
+              });
             })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
           "
 
