@@ -1,0 +1,562 @@
+name: Journaux des Cloud Functions (diagnostic)
+
+on:
+  push:
+    branches: [claude/new-session-rtyzv8]
+    paths:
+      - '.github/workflows/functions-logs.yml'
+  workflow_dispatch:
+    inputs:
+      functions:
+        description: 'Fonctions à inspecter (séparées par des virgules)'
+        required: false
+        default: 'notifyUserMessage,notifyOrderMessage,notifyNewOrder,notifyOrderAccepted'
+      lines:
+        description: 'Nombre de lignes de log'
+        required: false
+        default: '50'
+      admin_email:
+        description: 'Email à déclarer admin (laisser vide pour ne rien faire)'
+        required: false
+      fetch_apple_pay_file:
+        description: 'Récupérer le fichier de vérification de domaine Apple Pay (oui/non)'
+        required: false
+      register_apple_pay_domain:
+        description: 'Domaine à déclarer pour Apple Pay auprès de Stripe (laisser vide pour ne rien faire)'
+        required: false
+      check_stripe_account:
+        description: 'Vérifier le statut du compte plateforme Stripe (oui/non)'
+        required: false
+      set_business_name:
+        description: 'Nom à définir comme business_profile.name sur Stripe (laisser vide pour ne rien faire)'
+        required: false
+      fix_connected_accounts_profile:
+        description: 'Corriger le profil d activite des comptes Stripe voyageurs existants (oui/non)'
+        required: false
+      check_connected_accounts:
+        description: 'Verifier le statut (paiements actives, virements actives, pieces manquantes) des comptes Stripe voyageurs existants (oui/non)'
+        required: false
+      check_webhook_endpoints:
+        description: 'Lister les webhooks Stripe enregistrés et leurs évènements écoutés (oui/non)'
+        required: false
+      fix_profile_onboarded:
+        description: 'Numéro (format Firestore, ex 0749392022) dont le profil doit être marqué stripeOnboarded=true manuellement (laisser vide pour ne rien faire)'
+        required: false
+      check_payouts:
+        description: 'Numéro (format Firestore, ex 0749392022) du voyageur dont on veut lister les versements Stripe récents (laisser vide pour ne rien faire)'
+        required: false
+      trigger_instant_payout:
+        description: 'Numéro (format Firestore, ex 0749392022) du voyageur pour qui déclencher maintenant un virement instantané de tout son solde disponible (laisser vide pour ne rien faire)'
+        required: false
+      add_authorized_domain:
+        description: 'Domaine à ajouter aux domaines autorisés Firebase Auth, ex baraka-gp.github.io (laisser vide pour ne rien faire)'
+        required: false
+      check_recaptcha_keys:
+        description: 'Lister les clés reCAPTCHA Enterprise du projet et leurs domaines autorisés (oui/non)'
+        required: false
+      add_recaptcha_domain:
+        description: 'Domaine à ajouter aux domaines autorisés de toutes les clés reCAPTCHA Enterprise, ex baraka-gp.github.io (laisser vide pour ne rien faire)'
+        required: false
+      check_api_key_restrictions:
+        description: 'Vérifier les restrictions (referrers HTTP autorisés) de la clé API Firebase du site (oui/non)'
+        required: false
+      add_api_key_referrer:
+        description: 'Motif de referrer HTTP à ajouter à la clé API Firebase, ex https://baraka-gp.github.io/* (laisser vide pour ne rien faire)'
+        required: false
+      check_sms_region_policy:
+        description: 'Vérifier la politique régionale SMS de Firebase Auth (oui/non)'
+        required: false
+      allow_app_countries_sms:
+        description: 'Autoriser l envoi de SMS uniquement vers les pays desservis par l app (FR, MR, SN, ML, EG, SA) (oui/non)'
+        required: false
+      check_url:
+        description: 'URL à vérifier (code HTTP), ex pour confirmer qu une ressource CDN existe (laisser vide pour ne rien faire)'
+        required: false
+      find_last_order:
+        description: 'Numéros client|voyageur (format Firestore, ex 0626141733|0749392022) pour retrouver leur dernière commande (laisser vide pour ne rien faire)'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Installer Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Authentification Google (compte de service)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Afficher les journaux récents
+        if: inputs.functions != ''
+        run: firebase functions:log --project baraka-gp --only "${{ inputs.functions }}" -n "${{ inputs.lines }}"
+
+      - name: Inspecter Firestore (comptes et jetons push)
+        if: inputs.functions == ''
+        run: |
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            const db = admin.firestore();
+            const cleanPhone = p => (p || '').replace(/[^0-9]/g, '');
+            (async () => {
+              const snap = await db.collection('accounts').get();
+              console.log('Comptes trouvés :', snap.size);
+              let fixed = 0;
+              for (const doc of snap.docs) {
+                const d = doc.data();
+                const computed = cleanPhone(d.phone);
+                console.log('---');
+                console.log('uid:', doc.id, '| name:', d.name, '| phone:', d.phone, '| phoneClean actuel:', d.phoneClean, '| fcmTokens:', (d.fcmTokens || []).length);
+                if (!d.phoneClean && computed) {
+                  await doc.ref.set({ phoneClean: computed }, { merge: true });
+                  console.log('  -> corrigé : phoneClean =', computed);
+                  fixed++;
+                }
+              }
+              console.log('Comptes corrigés :', fixed);
+              const msgSnap = await db.collection('messages').get();
+              console.log('=== Threads messages ===');
+              msgSnap.forEach(doc => {
+                const d = doc.data();
+                console.log(doc.id, '| name:', d.name, '| thread length:', (d.thread||[]).length, '| last from:', d.thread && d.thread.length ? d.thread[d.thread.length-1].from : null);
+              });
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+
+      - name: Déclarer un compte admin
+        if: inputs.admin_email != ''
+        env:
+          ADMIN_EMAIL: ${{ inputs.admin_email }}
+        run: |
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const user = await admin.auth().getUserByEmail(process.env.ADMIN_EMAIL);
+              console.log('Compte trouvé : uid =', user.uid, '| email =', user.email);
+              await admin.firestore().collection('admins').doc(user.uid).set({ role: 'admin' });
+              console.log('-> Déclaré admin avec succès (collection admins, doc', user.uid + ')');
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+
+      - name: Récupérer le fichier de vérification Apple Pay (Stripe)
+        if: inputs.fetch_apple_pay_file != ''
+        run: |
+          set -e
+          URL="https://stripe.com/files/apple-pay/apple-developer-merchantid-domain-association"
+          echo "Téléchargement depuis $URL"
+          HTTP_CODE=$(curl -sS -w "%{http_code}" -o /tmp/apple-pay-file -L "$URL")
+          echo "Code HTTP : $HTTP_CODE"
+          echo "Taille : $(wc -c < /tmp/apple-pay-file) octets"
+          head -c 300 /tmp/apple-pay-file
+          echo ""
+
+      - name: Déclarer le domaine Apple Pay auprès de Stripe
+        if: inputs.register_apple_pay_domain != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          DOMAIN: ${{ inputs.register_apple_pay_domain }}
+        run: |
+          set -e
+          curl -sS https://api.stripe.com/v1/apple_pay/domains \
+            -u "$STRIPE_SECRET_KEY:" \
+            -d "domain_name=$DOMAIN"
+          echo ""
+
+      - name: Vérifier le statut du compte plateforme Stripe
+        if: inputs.check_stripe_account != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -e
+          curl -sS https://api.stripe.com/v1/account -u "$STRIPE_SECRET_KEY:" -o /tmp/stripe-account.json
+          echo "=== Compte plateforme (/v1/account) ==="
+          jq '{id, charges_enabled, payouts_enabled, details_submitted, requirements, capabilities, controller, type, business_profile, payout_schedule: .settings.payouts}' /tmp/stripe-account.json
+
+      - name: Définir le nom de l'entreprise sur Stripe
+        if: inputs.set_business_name != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          BUSINESS_NAME: ${{ inputs.set_business_name }}
+        run: |
+          set -e
+          curl -sS https://api.stripe.com/v1/account \
+            -u "$STRIPE_SECRET_KEY:" \
+            --data-urlencode "business_profile[name]=$BUSINESS_NAME" \
+            -o /tmp/stripe-account-updated.json
+          echo "=== Résultat ==="
+          jq '{id, business_profile}' /tmp/stripe-account-updated.json
+          echo "=== Réponse brute (debug) ==="
+          cat /tmp/stripe-account-updated.json
+
+      - name: Corriger le profil d'activité des comptes Stripe voyageurs existants
+        if: inputs.fix_connected_accounts_profile != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const snap = await admin.firestore().collection('profiles').get();
+              const ids = [];
+              snap.forEach(doc => { const d = doc.data(); if (d.stripeAccountId) ids.push(d.stripeAccountId); });
+              require('fs').writeFileSync('/tmp/account-ids.txt', ids.join('\n') + '\n');
+              console.log('Comptes Stripe trouvés :', ids.length);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+          while IFS= read -r ACCT; do
+            [ -z "$ACCT" ] && continue
+            echo "Mise à jour de $ACCT"
+            curl -sS https://api.stripe.com/v1/accounts/$ACCT \
+              -u "$STRIPE_SECRET_KEY:" \
+              --data-urlencode "business_profile[product_description]=Transport de colis entre particuliers via l'application Baraka GP" \
+              --data-urlencode "business_profile[mcc]=4789" \
+              -o /tmp/update-$ACCT.json
+            jq '{id, business_profile}' /tmp/update-$ACCT.json
+            echo "--- Réponse brute (debug) ---"
+            cat /tmp/update-$ACCT.json
+          done < /tmp/account-ids.txt
+
+      - name: Vérifier le statut des comptes Stripe voyageurs existants
+        if: inputs.check_connected_accounts != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const snap = await admin.firestore().collection('profiles').get();
+              const rows = [];
+              snap.forEach(doc => { const d = doc.data(); if (d.stripeAccountId) rows.push({ phone: doc.id, name: d.name, accountId: d.stripeAccountId, stripeOnboarded: d.stripeOnboarded || false }); });
+              require('fs').writeFileSync('/tmp/accounts.json', JSON.stringify(rows));
+              console.log('Comptes Stripe trouvés :', rows.length);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+          node -e "
+            const rows = JSON.parse(require('fs').readFileSync('/tmp/accounts.json', 'utf8'));
+            require('fs').writeFileSync('/tmp/accounts.txt', rows.map(r => [r.phone, r.accountId, r.name, r.stripeOnboarded].join('|')).join('\n') + '\n');
+          "
+          while IFS='|' read -r PHONE ACCT NAME ONBOARDED; do
+            [ -z "$ACCT" ] && continue
+            echo "=== $NAME ($PHONE) — $ACCT — profils.stripeOnboarded=$ONBOARDED ==="
+            curl -sS https://api.stripe.com/v1/accounts/$ACCT -u "$STRIPE_SECRET_KEY:" -o /tmp/acct-$ACCT.json
+            jq '{id, charges_enabled, payouts_enabled, details_submitted, requirements: {currently_due, disabled_reason}, payout_schedule: .settings.payouts}' /tmp/acct-$ACCT.json
+            echo "--- Solde (disponible / en attente) ---"
+            curl -sS https://api.stripe.com/v1/balance -u "$STRIPE_SECRET_KEY:" -H "Stripe-Account: $ACCT" -o /tmp/bal-$ACCT.json
+            jq '{available, pending}' /tmp/bal-$ACCT.json
+            echo "--- Virements externes (cartes/IBAN) ---"
+            curl -sS "https://api.stripe.com/v1/accounts/$ACCT/external_accounts" -u "$STRIPE_SECRET_KEY:" -o /tmp/ext-$ACCT.json
+            jq '.data[] | {object, id, default_for_currency, available_payout_methods: (.available_payout_methods // null)}' /tmp/ext-$ACCT.json
+          done < /tmp/accounts.txt
+
+      - name: Lister les webhooks Stripe enregistrés
+        if: inputs.check_webhook_endpoints != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -e
+          curl -sS https://api.stripe.com/v1/webhook_endpoints -u "$STRIPE_SECRET_KEY:" -o /tmp/webhooks.json
+          jq '.data[] | {id, url, status, enabled_events}' /tmp/webhooks.json
+
+      - name: Lister les versements Stripe récents d'un voyageur
+        if: inputs.check_payouts != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PHONE: ${{ inputs.check_payouts }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const snap = await admin.firestore().collection('profiles').doc(process.env.PHONE).get();
+              if (!snap.exists || !snap.data().stripeAccountId) { console.error('Pas de compte Stripe pour ce numéro'); process.exit(1); }
+              require('fs').writeFileSync('/tmp/acct.txt', snap.data().stripeAccountId);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+          ACCT=$(cat /tmp/acct.txt)
+          echo "=== Compte $ACCT ==="
+          echo "--- Solde actuel ---"
+          curl -sS https://api.stripe.com/v1/balance -u "$STRIPE_SECRET_KEY:" -H "Stripe-Account: $ACCT" -o /tmp/bal.json
+          jq '{available, pending}' /tmp/bal.json
+          echo "--- Versements (payouts) récents ---"
+          curl -sS "https://api.stripe.com/v1/payouts?limit=10" -u "$STRIPE_SECRET_KEY:" -H "Stripe-Account: $ACCT" -o /tmp/payouts.json
+          jq '.data[] | {id, amount, currency, status, method, arrival_date, created, failure_message}' /tmp/payouts.json
+
+      - name: Déclencher un virement instantané manuel
+        if: inputs.trigger_instant_payout != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PHONE: ${{ inputs.trigger_instant_payout }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const snap = await admin.firestore().collection('profiles').doc(process.env.PHONE).get();
+              if (!snap.exists || !snap.data().stripeAccountId) { console.error('Pas de compte Stripe pour ce numéro'); process.exit(1); }
+              require('fs').writeFileSync('/tmp/acct.txt', snap.data().stripeAccountId);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+          ACCT=$(cat /tmp/acct.txt)
+          echo "=== Compte $ACCT ==="
+          curl -sS https://api.stripe.com/v1/balance -u "$STRIPE_SECRET_KEY:" -H "Stripe-Account: $ACCT" -o /tmp/bal.json
+          AMOUNT=$(jq '[.available[] | select(.currency=="eur") | .amount] | add // 0' /tmp/bal.json)
+          echo "Solde disponible (centimes) : $AMOUNT"
+          if [ "$AMOUNT" -le 0 ]; then
+            echo "Rien à verser (solde disponible nul)."
+            exit 0
+          fi
+          curl -sS https://api.stripe.com/v1/payouts \
+            -u "$STRIPE_SECRET_KEY:" \
+            -H "Stripe-Account: $ACCT" \
+            --data-urlencode "amount=$AMOUNT" \
+            --data-urlencode "currency=eur" \
+            --data-urlencode "method=instant" \
+            -o /tmp/payout-result.json
+          echo "=== Résultat ==="
+          jq '{id, amount, status, method, arrival_date, failure_message, error}' /tmp/payout-result.json
+          cat /tmp/payout-result.json
+
+      - name: Ajouter un domaine autorisé Firebase Auth
+        if: inputs.add_authorized_domain != ''
+        env:
+          DOMAIN: ${{ inputs.add_authorized_domain }}
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          curl -sS "https://identitytoolkit.googleapis.com/admin/v2/projects/baraka-gp/config" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/authconfig.json
+          echo "=== Domaines autorisés actuels ==="
+          jq '.authorizedDomains' /tmp/authconfig.json
+          node -e "
+            const cfg = JSON.parse(require('fs').readFileSync('/tmp/authconfig.json', 'utf8'));
+            const domains = new Set(cfg.authorizedDomains || []);
+            domains.add(process.env.DOMAIN);
+            require('fs').writeFileSync('/tmp/newdomains.json', JSON.stringify([...domains]));
+          "
+          curl -sS -X PATCH "https://identitytoolkit.googleapis.com/admin/v2/projects/baraka-gp/config?updateMask=authorizedDomains" \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d "{\"authorizedDomains\": $(cat /tmp/newdomains.json)}" \
+            -o /tmp/updated.json
+          echo "=== Nouveaux domaines autorisés ==="
+          jq '.authorizedDomains' /tmp/updated.json
+
+      - name: Lister les clés reCAPTCHA Enterprise
+        if: inputs.check_recaptcha_keys != ''
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          curl -sS "https://recaptchaenterprise.googleapis.com/v1/projects/baraka-gp/keys" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/keys.json
+          echo "=== Réponse brute ==="
+          cat /tmp/keys.json
+          echo ""
+          jq '.keys[]? | {name, displayName, webSettings}' /tmp/keys.json
+
+      - name: Ajouter un domaine aux clés reCAPTCHA Enterprise
+        if: inputs.add_recaptcha_domain != ''
+        env:
+          DOMAIN: ${{ inputs.add_recaptcha_domain }}
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          curl -sS "https://recaptchaenterprise.googleapis.com/v1/projects/baraka-gp/keys" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/keys.json
+          echo "=== Clés trouvées ==="
+          jq '.keys[] | {name, displayName, webSettings}' /tmp/keys.json
+          jq -r '.keys[]?.name // empty' /tmp/keys.json > /tmp/key_names.txt
+          while IFS= read -r KEYNAME; do
+            [ -z "$KEYNAME" ] && continue
+            echo "--- Mise à jour de $KEYNAME ---"
+            curl -sS "https://recaptchaenterprise.googleapis.com/v1/$KEYNAME" -H "Authorization: Bearer $TOKEN" -o /tmp/key.json
+            node -e "
+              const key = JSON.parse(require('fs').readFileSync('/tmp/key.json', 'utf8'));
+              const domains = new Set((key.webSettings && key.webSettings.allowedDomains) || []);
+              domains.add(process.env.DOMAIN);
+              key.webSettings = key.webSettings || {};
+              key.webSettings.allowedDomains = [...domains];
+              require('fs').writeFileSync('/tmp/key-body.json', JSON.stringify(key.webSettings));
+            "
+            curl -sS -X PATCH "https://recaptchaenterprise.googleapis.com/v1/$KEYNAME?updateMask=web_settings.allowed_domains" \
+              -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+              -d "{\"webSettings\": $(cat /tmp/key-body.json)}" \
+              -o /tmp/key-updated.json
+            jq '{name, webSettings}' /tmp/key-updated.json
+          done < /tmp/key_names.txt
+
+      - name: Vérifier les restrictions de la clé API Firebase
+        if: inputs.check_api_key_restrictions != ''
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          FIREBASE_KEY="AIzaSyD67E8efC3xhu2Uavp3htKhDnOjZDkRz94"
+          curl -sS "https://apikeys.googleapis.com/v2/projects/baraka-gp/locations/global/keys" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/apikeys.json
+          echo "=== Clés API du projet ==="
+          cat /tmp/apikeys.json
+          jq -r '.keys[]?.name // empty' /tmp/apikeys.json > /tmp/key_names.txt
+          while IFS= read -r KEYNAME; do
+            [ -z "$KEYNAME" ] && continue
+            curl -sS "https://apikeys.googleapis.com/v2/$KEYNAME/keyString" -H "Authorization: Bearer $TOKEN" -o /tmp/ks.json
+            KS=$(jq -r '.keyString // empty' /tmp/ks.json)
+            if [ "$KS" = "$FIREBASE_KEY" ]; then
+              echo "=== Clé utilisée par l'app trouvée : $KEYNAME ==="
+              curl -sS "https://apikeys.googleapis.com/v2/$KEYNAME" -H "Authorization: Bearer $TOKEN" -o /tmp/keydetail.json
+              jq '{name, displayName, restrictions}' /tmp/keydetail.json
+            fi
+          done < /tmp/key_names.txt
+
+      - name: Ajouter un referrer autorisé à la clé API Firebase
+        if: inputs.add_api_key_referrer != ''
+        env:
+          REFERRER: ${{ inputs.add_api_key_referrer }}
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          FIREBASE_KEY="AIzaSyD67E8efC3xhu2Uavp3htKhDnOjZDkRz94"
+          curl -sS "https://apikeys.googleapis.com/v2/projects/baraka-gp/locations/global/keys" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/apikeys.json
+          jq -r '.keys[]?.name // empty' /tmp/apikeys.json > /tmp/key_names.txt
+          while IFS= read -r KEYNAME; do
+            [ -z "$KEYNAME" ] && continue
+            curl -sS "https://apikeys.googleapis.com/v2/$KEYNAME/keyString" -H "Authorization: Bearer $TOKEN" -o /tmp/ks.json
+            KS=$(jq -r '.keyString // empty' /tmp/ks.json)
+            if [ "$KS" = "$FIREBASE_KEY" ]; then
+              echo "=== Mise à jour de $KEYNAME ==="
+              curl -sS "https://apikeys.googleapis.com/v2/$KEYNAME" -H "Authorization: Bearer $TOKEN" -o /tmp/keydetail.json
+              echo "--- Avant ---"
+              jq '{restrictions}' /tmp/keydetail.json
+              node -e "
+                const key = JSON.parse(require('fs').readFileSync('/tmp/keydetail.json', 'utf8'));
+                const restrictions = key.restrictions || {};
+                if (!restrictions.browserKeyRestrictions) {
+                  console.log('Pas de restriction de referrer sur cette clé : rien à faire.');
+                  process.exit(0);
+                }
+                const referrers = new Set(restrictions.browserKeyRestrictions.allowedReferrers || []);
+                referrers.add(process.env.REFERRER);
+                restrictions.browserKeyRestrictions.allowedReferrers = [...referrers];
+                require('fs').writeFileSync('/tmp/restrictions-body.json', JSON.stringify(restrictions));
+              "
+              if [ -f /tmp/restrictions-body.json ]; then
+                curl -sS -X PATCH "https://apikeys.googleapis.com/v2/$KEYNAME?updateMask=restrictions" \
+                  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+                  -d "{\"restrictions\": $(cat /tmp/restrictions-body.json)}" \
+                  -o /tmp/keyupdated.json
+                echo "--- Après ---"
+                jq '{restrictions}' /tmp/keyupdated.json
+              fi
+            fi
+          done < /tmp/key_names.txt
+
+      - name: Vérifier la politique régionale SMS
+        if: inputs.check_sms_region_policy != ''
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          curl -sS "https://identitytoolkit.googleapis.com/admin/v2/projects/baraka-gp/config" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/authconfig.json
+          echo "=== Config complète (extrait SMS/recaptcha) ==="
+          jq '{smsRegionConfig, recaptchaConfig: (.recaptchaConfig // "absent"), authorizedDomains}' /tmp/authconfig.json
+
+      - name: Autoriser les SMS pour les pays desservis par l'app
+        if: inputs.allow_app_countries_sms != ''
+        run: |
+          set -e
+          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
+          TOKEN=$(gcloud auth print-access-token)
+          curl -sS "https://identitytoolkit.googleapis.com/admin/v2/projects/baraka-gp/config" \
+            -H "Authorization: Bearer $TOKEN" -o /tmp/authconfig.json
+          echo "=== Politique régionale SMS avant ==="
+          jq '.smsRegionConfig' /tmp/authconfig.json
+          # France, Mauritanie, Sénégal, Mali, Égypte, Arabie Saoudite — les
+          # seuls pays desservis par Baraka GP (liste restreinte volontaire,
+          # pas une ouverture à tous les pays, pour limiter le risque de
+          # fraude à l'envoi de SMS).
+          curl -sS -X PATCH "https://identitytoolkit.googleapis.com/admin/v2/projects/baraka-gp/config?updateMask=smsRegionConfig" \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d '{"smsRegionConfig": {"allowlistOnly": {"allowedRegions": ["FR","MR","SN","ML","EG","SA"]}}}' \
+            -o /tmp/updated.json
+          echo "=== Politique régionale SMS après ==="
+          jq '.smsRegionConfig' /tmp/updated.json
+          cat /tmp/updated.json
+
+      - name: Vérifier une URL (code HTTP)
+        if: inputs.check_url != ''
+        run: |
+          curl -sS -o /dev/null -w "HTTP %{http_code}\n" "${{ inputs.check_url }}"
+
+      - name: Retrouver la dernière commande entre deux numéros
+        if: inputs.find_last_order != ''
+        env:
+          PAIR: ${{ inputs.find_last_order }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const [clientPhone, gpPhone] = process.env.PAIR.split('|').map(s => s.trim());
+              const snap = await admin.firestore().collection('orders')
+                .where('clientPhone', '==', clientPhone)
+                .where('gpPhone', '==', gpPhone)
+                .get();
+              const orders = [];
+              snap.forEach(doc => orders.push({ id: doc.id, ...doc.data() }));
+              orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+              console.log('Commandes trouvées :', orders.length);
+              const skip = ['photo', 'weightProof', 'idPhoto', 'signature'];
+              orders.forEach(o => {
+                console.log('=== ORDER ===');
+                Object.keys(o).sort().forEach(k => {
+                  if (skip.includes(k)) { console.log(k + ' = [omis]'); return; }
+                  let v = o[k];
+                  if (typeof v === 'string' && v.length > 300) v = v.slice(0, 300) + '...[tronqué]';
+                  console.log(k + ' = ' + JSON.stringify(v));
+                });
+              });
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+
+      - name: Corriger manuellement stripeOnboarded sur un profil
+        if: inputs.fix_profile_onboarded != ''
+        env:
+          PHONE: ${{ inputs.fix_profile_onboarded }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const ref = admin.firestore().collection('profiles').doc(process.env.PHONE);
+              const snap = await ref.get();
+              if (!snap.exists) { console.error('Profil introuvable pour', process.env.PHONE); process.exit(1); }
+              await ref.set({ stripeOnboarded: true }, { merge: true });
+              console.log('stripeOnboarded mis à true pour', process.env.PHONE);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "

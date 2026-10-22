@@ -1,0 +1,68 @@
+name: Déployer le backend (Cloud Functions + règles Firestore)
+
+on:
+  push:
+    branches: [claude/new-session-rtyzv8]
+    paths:
+      - 'functions/**'
+      - 'firebase.json'
+      - '.firebaserc'
+      - 'firestore.rules'
+      - '.github/workflows/deploy-functions.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer les dépendances
+        working-directory: functions
+        run: npm install
+
+      - name: Installer Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Authentification Google (compte de service)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Vérifier que la clé de service est valide
+        run: |
+          node -e "
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf8'));
+            if (!data.client_email || !data.private_key) throw new Error('Champs manquants dans la clé de service (client_email/private_key)');
+            console.log('Clé de service valide pour', data.client_email);
+          "
+
+      - name: Enregistrer les clés Stripe (Secret Manager)
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+        run: |
+          printf '%s' "$STRIPE_SECRET_KEY" | firebase functions:secrets:set STRIPE_SECRET_KEY --data-file - --force
+          printf '%s' "$STRIPE_WEBHOOK_SECRET" | firebase functions:secrets:set STRIPE_WEBHOOK_SECRET --data-file - --force
+
+      - name: Enregistrer les identifiants Gmail (Secret Manager)
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          printf '%s' "$GMAIL_USER" | firebase functions:secrets:set GMAIL_USER --data-file - --force
+          printf '%s' "$GMAIL_APP_PASSWORD" | firebase functions:secrets:set GMAIL_APP_PASSWORD --data-file - --force
+
+      - name: Déployer les fonctions
+        run: firebase deploy --only functions --project baraka-gp --non-interactive --force
+
+      - name: Déployer les règles Firestore
+        run: firebase deploy --only firestore:rules --project baraka-gp --non-interactive --force
