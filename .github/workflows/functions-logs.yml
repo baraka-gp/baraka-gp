@@ -75,6 +75,9 @@ on:
       find_last_order:
         description: 'Numéros client|voyageur (format Firestore, ex 0626141733|0749392022) pour retrouver leur dernière commande (laisser vide pour ne rien faire)'
         required: false
+      check_firestore_doc:
+        description: 'collection/docId à inspecter, ex profiles/0749392022 (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -538,6 +541,33 @@ jobs:
                   if (typeof v === 'string' && v.length > 300) v = v.slice(0, 300) + '...[tronqué]';
                   console.log(k + ' = ' + JSON.stringify(v));
                 });
+              });
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+
+      - name: Inspecter un document Firestore précis
+        if: inputs.check_firestore_doc != ''
+        env:
+          DOCPATH: ${{ inputs.check_firestore_doc }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const [collection, docId] = process.env.DOCPATH.split('/');
+              const ref = admin.firestore().collection(collection).doc(docId);
+              const snap = await ref.get();
+              if (!snap.exists) { console.log('Document introuvable :', process.env.DOCPATH); return; }
+              const skip = ['photo', 'weightProof', 'idPhoto', 'signature'];
+              const d = snap.data();
+              console.log('=== ' + process.env.DOCPATH + ' ===');
+              Object.keys(d).sort().forEach(k => {
+                if (skip.includes(k)) { console.log(k + ' = [omis]'); return; }
+                let v = d[k];
+                if (typeof v === 'string' && v.length > 300) v = v.slice(0, 300) + '...[tronqué]';
+                console.log(k + ' = ' + JSON.stringify(v));
               });
             })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
           "
