@@ -447,7 +447,7 @@
       <div class="rules-box" style="background:var(--green-pale);">
         <label class="check-line"><input type="checkbox" id="pAcceptAll"> <span data-i18n="commitmentAccept">Je m'engage à respecter ces règles, je certifie que mon billet et mon identité sont exacts, et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</span></label>
       </div>
-      <button class="btn gold" data-i18n="publishMyTrip" onclick="publishListing()">Publier mon trajet</button>
+      <button class="btn gold" id="publishSubmitBtn" data-i18n="publishMyTrip" onclick="publishListing()">Publier mon trajet</button>
     </div>
   </div>
 
@@ -3084,57 +3084,67 @@ function shareWithRecipient(orderId){
 
 // ---- PUBLISH GP / COLIS ----
 async function publishListing(){
-  const name=document.getElementById('pName').value.trim();
-  const phoneRaw=document.getElementById('pPhone').value.trim();
-  const phone=cleanPhone(phoneRaw);
-  const from=document.getElementById('pFrom').value.trim();
-  const to=document.getElementById('pTo').value.trim();
-  const country=document.getElementById('pCountry').value;
-  const date=document.getElementById('pDate').value;
-  const arrival=document.getElementById('pArrival').value;
-  const kg=document.getElementById('pKg').value;
-  const ticketFile=document.getElementById('pTicket').files[0];
+  // Protège contre le double-clic/double-tap : sans ça, un appui impatient
+  // pendant la compression du billet (ça prend quelques secondes) relance
+  // toute la fonction en parallèle et crée deux annonces identiques.
+  const btn=document.getElementById('publishSubmitBtn');
+  if(btn && btn.disabled) return;
+  if(btn) btn.disabled=true;
+  try{
+    const name=document.getElementById('pName').value.trim();
+    const phoneRaw=document.getElementById('pPhone').value.trim();
+    const phone=cleanPhone(phoneRaw);
+    const from=document.getElementById('pFrom').value.trim();
+    const to=document.getElementById('pTo').value.trim();
+    const country=document.getElementById('pCountry').value;
+    const date=document.getElementById('pDate').value;
+    const arrival=document.getElementById('pArrival').value;
+    const kg=document.getElementById('pKg').value;
+    const ticketFile=document.getElementById('pTicket').files[0];
 
-  if(!name||!phone||!from||!to||!kg||!date||!arrival){ showToast("Merci de remplir tous les champs"); return; }
-  if(date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
-  if(date && arrival.slice(0,10)<date){ showToast("La date d'arrivée ne peut pas être avant la date de départ"); return; }
-  const overlap=findOverlappingTrip(phone, date, arrival, null);
-  if(overlap){ showToast(`Vous avez déjà un trajet du ${fmtDate(overlap.date)} au ${fmtDate(overlap.arrivalDateTime?overlap.arrivalDateTime.slice(0,10):overlap.date)} (${overlap.from} → ${overlap.to}). Un voyageur ne peut pas être sur deux trajets en même temps.`); return; }
-  if(!ticketFile){ showToast("Merci d'ajouter votre billet"); return; }
+    if(!name||!phone||!from||!to||!kg||!date||!arrival){ showToast("Merci de remplir tous les champs"); return; }
+    if(date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
+    if(date && arrival.slice(0,10)<date){ showToast("La date d'arrivée ne peut pas être avant la date de départ"); return; }
+    const overlap=findOverlappingTrip(phone, date, arrival, null);
+    if(overlap){ showToast(`Vous avez déjà un trajet du ${fmtDate(overlap.date)} au ${fmtDate(overlap.arrivalDateTime?overlap.arrivalDateTime.slice(0,10):overlap.date)} (${overlap.from} → ${overlap.to}). Un voyageur ne peut pas être sur deux trajets en même temps.`); return; }
+    if(!ticketFile){ showToast("Merci d'ajouter votre billet"); return; }
 
-  const hasProfile=!!profiles[phone];
-  if(!hasProfile){
-    const idFile=document.getElementById('pId').files[0];
-    const idType=document.getElementById('pIdType').value;
-    const avatarFile=document.getElementById('pAvatar').files[0];
-    if(!idFile){ showToast("Merci d'ajouter une pièce d'identité"); return; }
-    showToast("Envoi en cours...");
-    let idPhoto, avatar=null;
-    try{ idPhoto=await compressImage(idFile); }catch(e){ showToast("Fichier illisible"); return; }
-    if(avatarFile){
-      try{ avatar=await compressImage(avatarFile); }catch(e){}
+    const hasProfile=!!profiles[phone];
+    if(!hasProfile){
+      const idFile=document.getElementById('pId').files[0];
+      const idType=document.getElementById('pIdType').value;
+      const avatarFile=document.getElementById('pAvatar').files[0];
+      if(!idFile){ showToast("Merci d'ajouter une pièce d'identité"); return; }
+      showToast("Envoi en cours...");
+      let idPhoto, avatar=null;
+      try{ idPhoto=await compressImage(idFile); }catch(e){ showToast("Fichier illisible"); return; }
+      if(avatarFile){
+        try{ avatar=await compressImage(avatarFile); }catch(e){}
+      }
+      profiles[phone]={name,phone:phoneRaw,avatar,verified:false,createdAt:Date.now(),ratingSum:0,ratingCount:0};
+      await saveProfiles([phone]);
+      await saveIdPhoto(phone, idPhoto, idType);
     }
-    profiles[phone]={name,phone:phoneRaw,avatar,verified:false,createdAt:Date.now(),ratingSum:0,ratingCount:0};
-    await saveProfiles([phone]);
-    await saveIdPhoto(phone, idPhoto, idType);
+    if(!document.getElementById('pAcceptAll').checked){ showToast("Merci de cocher la case d'engagement"); return; }
+
+    showToast("Envoi en cours...");
+    let ticket;
+    try{ ticket=await compressImage(ticketFile); }catch(e){ showToast("Billet illisible"); return; }
+    const ticketText=await readTicketText(ticketFile);
+
+    listings.push({id:Date.now().toString(),type:'gp',phone,from,to,country,date,arrivalDateTime:arrival,kg:parseInt(kg),price:PRICE_PER_KG,ticket,ticketText});
+    await saveListings();
+    showToast(hasProfile?"Trajet publié !":"Trajet publié ! Identité en attente de vérification 🙏");
+
+    ['pName','pFrom','pTo','pDate','pArrival','pKg','pTicket','pId'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('pPhone').value=phoneRaw;
+    document.getElementById('pAcceptAll').checked=false;
+    ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('searchCountry').value='';
+    switchTab('search');
+  } finally {
+    if(btn) btn.disabled=false;
   }
-  if(!document.getElementById('pAcceptAll').checked){ showToast("Merci de cocher la case d'engagement"); return; }
-
-  showToast("Envoi en cours...");
-  let ticket;
-  try{ ticket=await compressImage(ticketFile); }catch(e){ showToast("Billet illisible"); return; }
-  const ticketText=await readTicketText(ticketFile);
-
-  listings.push({id:Date.now().toString(),type:'gp',phone,from,to,country,date,arrivalDateTime:arrival,kg:parseInt(kg),price:PRICE_PER_KG,ticket,ticketText});
-  await saveListings();
-  showToast(hasProfile?"Trajet publié !":"Trajet publié ! Identité en attente de vérification 🙏");
-
-  ['pName','pFrom','pTo','pDate','pArrival','pKg','pTicket','pId'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('pPhone').value=phoneRaw;
-  document.getElementById('pAcceptAll').checked=false;
-  ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('searchCountry').value='';
-  switchTab('search');
 }
 
 // ---- MY TRIPS (voir/modifier/supprimer ses propres trajets) ----
