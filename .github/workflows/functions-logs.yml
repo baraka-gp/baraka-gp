@@ -78,6 +78,9 @@ on:
       check_firestore_doc:
         description: 'collection/docId à inspecter, ex profiles/0749392022 (laisser vide pour ne rien faire)'
         required: false
+      check_auth_user:
+        description: 'Email du compte Firebase Auth à inspecter (date de création/dernière connexion) (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -569,6 +572,32 @@ jobs:
                 if (typeof v === 'string' && v.length > 300) v = v.slice(0, 300) + '...[tronqué]';
                 console.log(k + ' = ' + JSON.stringify(v));
               });
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+
+      - name: Inspecter un compte Firebase Auth
+        if: inputs.check_auth_user != ''
+        env:
+          EMAIL: ${{ inputs.check_auth_user }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const user = await admin.auth().getUserByEmail(process.env.EMAIL);
+              console.log('uid =', user.uid);
+              console.log('email =', user.email);
+              console.log('phoneNumber =', user.phoneNumber);
+              console.log('creationTime =', user.metadata.creationTime);
+              console.log('lastSignInTime =', user.metadata.lastSignInTime);
+              console.log('lastRefreshTime =', user.metadata.lastRefreshTime);
+              const accDoc = await admin.firestore().collection('accounts').doc(user.uid).get();
+              console.log('accounts/' + user.uid + ' existe =', accDoc.exists);
+              if (accDoc.exists) console.log('accounts data =', JSON.stringify(accDoc.data()));
+              const adminDoc = await admin.firestore().collection('admins').doc(user.uid).get();
+              console.log('admins/' + user.uid + ' existe =', adminDoc.exists);
             })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
           "
 
