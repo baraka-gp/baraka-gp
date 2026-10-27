@@ -84,6 +84,9 @@ on:
       check_listings_by_name:
         description: 'Prénom du voyageur pour lister ses annonces (listings) actuelles (laisser vide pour ne rien faire)'
         required: false
+      delete_firestore_doc:
+        description: 'collection/docId à supprimer, ex listings/1793127746253 (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -627,6 +630,26 @@ jobs:
                   console.log(k + ' = ' + JSON.stringify(d[k]));
                 });
               });
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+
+      - name: Supprimer un document Firestore précis
+        if: inputs.delete_firestore_doc != ''
+        env:
+          DOCPATH: ${{ inputs.delete_firestore_doc }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const [collection, docId] = process.env.DOCPATH.split('/');
+              const ref = admin.firestore().collection(collection).doc(docId);
+              const snap = await ref.get();
+              if (!snap.exists) { console.log('Déjà absent :', process.env.DOCPATH); return; }
+              await ref.delete();
+              console.log('Supprimé :', process.env.DOCPATH);
             })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
           "
 
