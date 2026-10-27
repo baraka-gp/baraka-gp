@@ -903,6 +903,19 @@ const I18N = {
     noMessagesWriteUs:'No messages yet. Write to us!', noMessages:'No messages yet.',
     cancelPossibleFor:'⏳ Cancellation possible for another {h}h',
     cancelMinutesLeft:'⏳ Trip in less than 48h: {min} min left to cancel with no conditions',
+    ptsTitle:'Your Baraka points', ptsSubtitle:'Earn points on every completed order, redeem them for discounts.',
+    ptsCurrentPoints:'current points', ptsToNextDiscount:'{n} points until your next €5 discount',
+    ptsDiscountMsgSingular:'You have {n} €5 discount available! It will be applied to your next order if you wish.',
+    ptsDiscountMsgPlural:'You have {n} €5 discounts available! They will be applied to your next orders if you wish.',
+    ptsIdTitle:'Your Baraka GP ID', ptsIdDesc:'Write it on your packages (with first names), instead of your phone number.',
+    ptsReferTitle:'Refer your friends', ptsReferDesc:'You earn 5 points on their 1st order, they earn 5 points when signing up.',
+    btnCopy:'Copy', ptsHowToEarn:'How to earn points: +5 per completed order, +5 per active referral.',
+    balTitle:'My balance', balSubtitle:'This summarizes what you should receive or have paid based on your orders.',
+    balAsTraveler:'As a traveler', balPayoutConfigured:'Payment account set up, you can receive your payouts.',
+    balPayoutNotConfigured:'Set up your account to receive your payouts.', btnConfigurePayout:'Set up my payment account',
+    balReceived:'Received', balUpcoming:'Upcoming (order in progress)', balCancelledRefused:'Cancelled / refused',
+    balAsClient:'As a client', balPaid:'Paid', balPendingPayment:'Awaiting payment',
+    balEmptyTitle:'Nothing to show yet', balEmptyDesc:'Your balance will appear here as soon as your first order, sent or received.',
   },
   ar: {
     bnSearch:'بحث', bnSend:'إرسال', bnPublish:'سافر', bnOrders:'التتبع', bnMore:'المزيد',
@@ -1004,6 +1017,19 @@ const I18N = {
     noMessagesWriteUs:'لا توجد رسائل بعد. راسلنا!', noMessages:'لا توجد رسائل بعد.',
     cancelPossibleFor:'⏳ الإلغاء ممكن لمدة {h} ساعة أخرى',
     cancelMinutesLeft:'⏳ الرحلة بعد أقل من 48 ساعة: تبقّى {min} دقيقة للإلغاء دون شروط',
+    ptsTitle:'نقاط بركة الخاصة بك', ptsSubtitle:'اكسب نقاطًا مع كل طلب مكتمل، واستبدلها بخصومات.',
+    ptsCurrentPoints:'النقاط الحالية', ptsToNextDiscount:'{n} نقطة متبقية حتى خصمك القادم بقيمة 5 يورو',
+    ptsDiscountMsgSingular:'لديك {n} خصم بقيمة 5 يورو متاح! سيُطبّق على طلبك القادم إذا رغبت.',
+    ptsDiscountMsgPlural:'لديك {n} خصومات بقيمة 5 يورو متاحة! ستُطبّق على طلباتك القادمة إذا رغبت.',
+    ptsIdTitle:'معرّف Baraka GP الخاص بك', ptsIdDesc:'اكتبه على طرودك (مع الأسماء الأولى)، بدلاً من رقم هاتفك.',
+    ptsReferTitle:'ادعُ أصدقاءك', ptsReferDesc:'تكسب 5 نقاط عند طلبهم الأول، ويكسبون 5 نقاط عند التسجيل.',
+    btnCopy:'نسخ', ptsHowToEarn:'كيفية كسب النقاط: +5 لكل طلب مكتمل، +5 لكل إحالة نشطة.',
+    balTitle:'رصيدي', balSubtitle:'هذا ملخص لما يجب أن تستلمه أو دفعته بناءً على طلباتك.',
+    balAsTraveler:'كمسافر', balPayoutConfigured:'تم إعداد حساب الدفع، يمكنك استلام مدفوعاتك.',
+    balPayoutNotConfigured:'أعدّ حسابك لاستلام مدفوعاتك.', btnConfigurePayout:'إعداد حساب الدفع',
+    balReceived:'المستلم', balUpcoming:'القادم (طلب جارٍ)', balCancelledRefused:'ملغاة / مرفوضة',
+    balAsClient:'كعميل', balPaid:'المدفوع', balPendingPayment:'في انتظار الدفع',
+    balEmptyTitle:'لا شيء لعرضه بعد', balEmptyDesc:'سيظهر رصيدك هنا بمجرد أول طلب لك، مُرسل أو مُستلم.',
   },
 };
 let currentLang='fr';
@@ -1064,6 +1090,14 @@ function applyLanguage(lang){
   try{
     const viewMessages=document.getElementById('viewMessages');
     if(viewMessages && viewMessages.style.display!=='none' && typeof renderThread==='function' && typeof me!=='undefined' && me) renderThread();
+  }catch(e){}
+  try{
+    const viewPoints=document.getElementById('viewPoints');
+    if(viewPoints && viewPoints.style.display!=='none' && typeof renderPointsPanel==='function' && typeof me!=='undefined' && me) renderPointsPanel();
+  }catch(e){}
+  try{
+    const viewBalance=document.getElementById('viewBalance');
+    if(viewBalance && viewBalance.style.display!=='none' && typeof renderBalancePanel==='function' && typeof me!=='undefined' && me) renderBalancePanel();
   }catch(e){}
 }
 
@@ -1823,29 +1857,29 @@ function renderPointsPanel(){
   const discounts = availableDiscounts(me.phone);
   const refLink = location.origin + location.pathname + '?ref=' + points[key].refCode;
   document.getElementById('pointsPanel').innerHTML = `
-    <h2 style="display:flex;align-items:center;gap:9px;"><svg class="icon" viewBox="0 0 24 24" style="width:22px;height:22px;"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z"/></svg>Vos points Baraka</h2>
-    <div class="sub">Gagnez des points à chaque commande complétée, échangez-les contre des remises.</div>
+    <h2 style="display:flex;align-items:center;gap:9px;"><svg class="icon" viewBox="0 0 24 24" style="width:22px;height:22px;"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z"/></svg>${t('ptsTitle','Vos points Baraka')}</h2>
+    <div class="sub">${t('ptsSubtitle','Gagnez des points à chaque commande complétée, échangez-les contre des remises.')}</div>
     <div style="text-align:center;padding:10px 0;">
       <div style="font-family:'Fraunces',serif;font-size:38px;color:var(--accent);">${p}</div>
-      <div style="color:var(--ink-soft);font-size:13px;">points actuels</div>
+      <div style="color:var(--ink-soft);font-size:13px;">${t('ptsCurrentPoints','points actuels')}</div>
     </div>
     <div class="points-progress"><div style="width:${(p%50)/50*100}%;"></div></div>
-    <div style="font-size:12.5px;color:var(--ink-soft);text-align:center;">${toNext} points avant votre prochaine remise de 5€</div>
-    ${discounts>0 ? `<div class="badge verified" style="display:block;text-align:center;margin-top:14px;">🎉 Vous avez ${discounts} remise(s) de 5€ disponible(s) ! Elle${discounts>1?'s':''} s'appliquera à votre prochaine commande si vous le souhaitez.</div>` : ''}
+    <div style="font-size:12.5px;color:var(--ink-soft);text-align:center;">${t('ptsToNextDiscount','{n} points avant votre prochaine remise de 5€').replace('{n}', toNext)}</div>
+    ${discounts>0 ? `<div class="badge verified" style="display:block;text-align:center;margin-top:14px;">🎉 ${t(discounts>1?'ptsDiscountMsgPlural':'ptsDiscountMsgSingular', `Vous avez ${discounts} remise(s) de 5€ disponible(s) ! Elle${discounts>1?'s':''} s'appliquera à votre prochaine commande si vous le souhaitez.`).replace('{n}', discounts)}</div>` : ''}
     <div class="ref-box" style="background:var(--green-pale);margin-top:14px;">
-      <b style="color:var(--green-pale-ink);">🏷️ Votre identifiant Baraka GP</b>
-      <div style="font-size:13px;color:var(--green-pale-ink);margin-top:4px;">À écrire sur vos colis (avec les prénoms), à la place de votre numéro de téléphone.</div>
+      <b style="color:var(--green-pale-ink);">🏷️ ${t('ptsIdTitle','Votre identifiant Baraka GP')}</b>
+      <div style="font-size:13px;color:var(--green-pale-ink);margin-top:4px;">${t('ptsIdDesc',"À écrire sur vos colis (avec les prénoms), à la place de votre numéro de téléphone.")}</div>
       <div style="font-family:'Fraunces',serif;font-size:26px;color:var(--green-pale-ink);text-align:center;letter-spacing:3px;margin:8px 0 0;">${points[key].refCode.toUpperCase()}</div>
     </div>
     <div class="ref-box">
-      <b>🎁 Parrainez vos proches</b>
-      <div style="font-size:13px;color:var(--gold-soft-ink);margin-top:4px;">Vous gagnez 5 points à leur 1ère commande, ils gagnent 5 points à l'inscription.</div>
+      <b>🎁 ${t('ptsReferTitle','Parrainez vos proches')}</b>
+      <div style="font-size:13px;color:var(--gold-soft-ink);margin-top:4px;">${t('ptsReferDesc',"Vous gagnez 5 points à leur 1ère commande, ils gagnent 5 points à l'inscription.")}</div>
       <div class="link-row">
         <input type="text" readonly value="${refLink}" id="refLinkInput">
-        <button class="btn gold" onclick="copyRefLink()">Copier</button>
+        <button class="btn gold" onclick="copyRefLink()">${t('btnCopy','Copier')}</button>
       </div>
     </div>
-    <div style="font-size:12px;color:var(--ink-soft);">Comment gagner des points : +5 par commande complétée, +5 par filleul actif.</div>
+    <div style="font-size:12px;color:var(--ink-soft);">${t('ptsHowToEarn','Comment gagner des points : +5 par commande complétée, +5 par filleul actif.')}</div>
   `;
 }
 function renderBalancePanel(){
@@ -1880,41 +1914,41 @@ function renderBalancePanel(){
     return list.length===0 ? '' : `<div style="margin-top:8px;">${list.map(o=>orderRow(o, o[priceField]||0)).join('')}</div>`;
   }
 
-  let html = `<h2 style="display:flex;align-items:center;gap:9px;"><svg class="icon" viewBox="0 0 24 24" style="width:22px;height:22px;"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M3 9h18"/><circle cx="16" cy="14" r="1"/></svg>Mon solde</h2>
-    <div class="sub">Ceci récapitule ce que vous devriez recevoir ou avez payé selon vos commandes.</div>`;
+  let html = `<h2 style="display:flex;align-items:center;gap:9px;"><svg class="icon" viewBox="0 0 24 24" style="width:22px;height:22px;"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M3 9h18"/><circle cx="16" cy="14" r="1"/></svg>${t('balTitle','Mon solde')}</h2>
+    <div class="sub">${t('balSubtitle','Ceci récapitule ce que vous devriez recevoir ou avez payé selon vos commandes.')}</div>`;
 
   if(gpOrders.length>0){
     const myProfile=profiles[myPhone]||{};
     const payoutStatus=myProfile.stripeOnboarded
-      ? `<div class="hint" style="margin-top:6px;color:var(--accent);">${ICON_CHECK}Compte de paiement configuré, vous pouvez recevoir vos versements.</div>`
-      : `<div class="hint" style="margin-top:6px;">${ICON_WARN}Configurez votre compte pour recevoir vos versements.</div>
-         <button class="btn gold sm" onclick="openPayoutSetupGate()">🏦 Configurer mon compte de paiement</button>`;
+      ? `<div class="hint" style="margin-top:6px;color:var(--accent);">${ICON_CHECK}${t('balPayoutConfigured','Compte de paiement configuré, vous pouvez recevoir vos versements.')}</div>`
+      : `<div class="hint" style="margin-top:6px;">${ICON_WARN}${t('balPayoutNotConfigured','Configurez votre compte pour recevoir vos versements.')}</div>
+         <button class="btn gold sm" onclick="openPayoutSetupGate()">🏦 ${t('btnConfigurePayout','Configurer mon compte de paiement')}</button>`;
     html += `
-    <h3 style="margin-top:20px;font-family:'Fraunces',serif;">✈️ En tant que voyageur</h3>
+    <h3 style="margin-top:20px;font-family:'Fraunces',serif;">✈️ ${t('balAsTraveler','En tant que voyageur')}</h3>
     ${payoutStatus}
     <div class="price-recap">
-      <div class="price-recap-row"><span>🟢 Reçu</span><b>${gpReceivedTotal.toFixed(2)}€</b></div>
+      <div class="price-recap-row"><span>🟢 ${t('balReceived','Reçu')}</span><b>${gpReceivedTotal.toFixed(2)}€</b></div>
       ${orderList(gpReceived,'priceNet')}
-      <div class="price-recap-row" style="margin-top:10px;"><span>🟡 À venir (commande en cours)</span><b>${gpUpcomingTotal.toFixed(2)}€</b></div>
+      <div class="price-recap-row" style="margin-top:10px;"><span>🟡 ${t('balUpcoming','À venir (commande en cours)')}</span><b>${gpUpcomingTotal.toFixed(2)}€</b></div>
       ${orderList(gpUpcoming,'priceNet')}
-      ${gpCancelled.length>0 ? `<div class="price-recap-row sub" style="margin-top:10px;color:var(--green-pale-ink);"><span>🔴 Annulées / refusées</span><span>${gpCancelled.length}</span></div>` : ''}
+      ${gpCancelled.length>0 ? `<div class="price-recap-row sub" style="margin-top:10px;color:var(--green-pale-ink);"><span>🔴 ${t('balCancelledRefused','Annulées / refusées')}</span><span>${gpCancelled.length}</span></div>` : ''}
     </div>`;
   }
 
   if(clientOrders.length>0){
     html += `
-    <h3 style="margin-top:20px;font-family:'Fraunces',serif;">📦 En tant que client</h3>
+    <h3 style="margin-top:20px;font-family:'Fraunces',serif;">📦 ${t('balAsClient','En tant que client')}</h3>
     <div class="price-recap" style="background:var(--gold-soft);">
-      <div class="price-recap-row" style="color:var(--gold-soft-ink);"><span>💳 Payé</span><b>${clientPaidTotal.toFixed(2)}€</b></div>
+      <div class="price-recap-row" style="color:var(--gold-soft-ink);"><span>💳 ${t('balPaid','Payé')}</span><b>${clientPaidTotal.toFixed(2)}€</b></div>
       ${orderList(clientPaid,'priceTotal')}
-      <div class="price-recap-row" style="color:var(--gold-soft-ink);margin-top:10px;"><span>${ICON_CLOCK}En attente de paiement</span><b>${clientPendingTotal.toFixed(2)}€</b></div>
+      <div class="price-recap-row" style="color:var(--gold-soft-ink);margin-top:10px;"><span>${ICON_CLOCK}${t('balPendingPayment','En attente de paiement')}</span><b>${clientPendingTotal.toFixed(2)}€</b></div>
       ${orderList(clientPending,'priceTotal')}
-      ${clientCancelled.length>0 ? `<div class="price-recap-row sub" style="margin-top:10px;color:var(--gold-soft-ink);"><span>🔴 Annulées / refusées</span><span>${clientCancelled.length}</span></div>` : ''}
+      ${clientCancelled.length>0 ? `<div class="price-recap-row sub" style="margin-top:10px;color:var(--gold-soft-ink);"><span>🔴 ${t('balCancelledRefused','Annulées / refusées')}</span><span>${clientCancelled.length}</span></div>` : ''}
     </div>`;
   }
 
   if(gpOrders.length===0 && clientOrders.length===0){
-    html += `<div class="empty"><b>Rien à afficher pour l'instant</b>Votre solde apparaîtra ici dès votre première commande, envoyée ou reçue.</div>`;
+    html += `<div class="empty"><b>${t('balEmptyTitle',"Rien à afficher pour l'instant")}</b>${t('balEmptyDesc','Votre solde apparaîtra ici dès votre première commande, envoyée ou reçue.')}</div>`;
   }
 
   document.getElementById('balancePanel').innerHTML = html;
