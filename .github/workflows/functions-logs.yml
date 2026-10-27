@@ -81,6 +81,9 @@ on:
       check_auth_user:
         description: 'Email du compte Firebase Auth à inspecter (date de création/dernière connexion) (laisser vide pour ne rien faire)'
         required: false
+      check_listings_by_name:
+        description: 'Prénom du voyageur pour lister ses annonces (listings) actuelles (laisser vide pour ne rien faire)'
+        required: false
 
 permissions:
   contents: read
@@ -598,6 +601,29 @@ jobs:
               if (accDoc.exists) console.log('accounts data =', JSON.stringify(accDoc.data()));
               const adminDoc = await admin.firestore().collection('admins').doc(user.uid).get();
               console.log('admins/' + user.uid + ' existe =', adminDoc.exists);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+
+      - name: Lister les annonces d'un voyageur par prénom
+        if: inputs.check_listings_by_name != ''
+        env:
+          NAME: ${{ inputs.check_listings_by_name }}
+        run: |
+          set -e
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const snap = await admin.firestore().collection('listings').where('name', '==', process.env.NAME).get();
+              console.log('Annonces trouvées :', snap.size);
+              snap.forEach(doc => {
+                const d = doc.data();
+                console.log('=== ' + doc.id + ' ===');
+                ['name','phone','from','to','country','tripDate','kg','verified','createdAt'].forEach(k => {
+                  console.log(k + ' = ' + JSON.stringify(d[k]));
+                });
+              });
             })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
           "
 
