@@ -615,12 +615,15 @@ jobs:
             const admin = require('firebase-admin');
             admin.initializeApp({ projectId: 'baraka-gp' });
             (async () => {
-              const snap = await admin.firestore().collection('listings').where('name', '==', process.env.NAME).get();
-              console.log('Annonces trouvées :', snap.size);
+              // Les annonces de type 'gp' (voyageurs) n'ont pas de champ name :
+              // le nom affiché vient du profil résolu par téléphone au rendu.
+              // On liste donc TOUTES les annonces de type gp pour les repérer.
+              const snap = await admin.firestore().collection('listings').where('type', '==', 'gp').get();
+              console.log('Annonces de type gp trouvées :', snap.size);
               snap.forEach(doc => {
                 const d = doc.data();
                 console.log('=== ' + doc.id + ' ===');
-                ['name','phone','from','to','country','tripDate','kg','verified','createdAt'].forEach(k => {
+                ['type','phone','from','to','country','date','arrivalDateTime','kg','price','ticket'].forEach(k => {
                   console.log(k + ' = ' + JSON.stringify(d[k]));
                 });
               });
