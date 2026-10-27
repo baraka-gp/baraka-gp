@@ -895,6 +895,9 @@ const I18N = {
     pickupLocationLabel:'Pickup location', suggestedEditable:' (suggested, editable)', proposedSuffix:' proposed',
     phLocationExample:'E.g. Gare du Nord, Paris', proposedPickupTimeLabel:'Proposed pickup time',
     acceptAndProposeToClient:'I accept this location, propose to client', proposeToClient:'Propose to client',
+    btnProposeOtherTime:'Propose a different time', proposeToTraveler:'Propose to traveler',
+    pickupProposalSentHint:'Proposal sent. Waiting for a response.',
+    clientCounterProposalHeader:'The client is proposing a different pickup location and time:',
     askCodeFromRecipient:'Ask the recipient for the 4-digit code at handover, to confirm receipt.',
     reviewLinkSentToRecipient:'Review the link sent to the recipient',
     travelerHandsToRecipient:'The traveler hands the package to the recipient, who gives them their receipt code to confirm.',
@@ -1009,6 +1012,9 @@ const I18N = {
     pickupLocationLabel:'مكان الاستلام', suggestedEditable:' (مقترح، قابل للتعديل)', proposedSuffix:' مقترح',
     phLocationExample:'مثال: Gare du Nord, باريس', proposedPickupTimeLabel:'وقت الاستلام المقترح',
     acceptAndProposeToClient:'أوافق على هذا المكان، اقتراحه على العميل', proposeToClient:'اقتراح على العميل',
+    btnProposeOtherTime:'اقتراح وقت آخر', proposeToTraveler:'اقتراح على المسافر',
+    pickupProposalSentHint:'تم إرسال الاقتراح. في انتظار الرد.',
+    clientCounterProposalHeader:'يقترح العميل مكانًا ووقتًا آخرين للاستلام:',
     askCodeFromRecipient:'اطلب الرمز المكوّن من 4 أرقام من المستلم عند التسليم، للتأكد من الاستلام.',
     reviewLinkSentToRecipient:'مراجعة الرابط المُرسل إلى المستلم',
     travelerHandsToRecipient:'يسلّم المسافر الطرد إلى المستلم، الذي يعطيه رمز الاستلام للتأكيد.',
@@ -2050,13 +2056,53 @@ let lastPollSig=null;
 // fonction, appelée toutes les 4s, recopierait ces images en mémoire à
 // chaque fois pour rien.
 function pollSig(){
-  const o=orders.map(x=>[x.id,x.status,x.pickupLocation,x.pickupTime,x.pickupTimeAccepted,x.rating,x.clientRating,x.transferred].join(',')).join('|');
+  const o=orders.map(x=>[x.id,x.status,x.pickupLocation,x.pickupTime,x.pickupTimeAccepted,x.pickupProposedBy,x.rating,x.clientRating,x.transferred].join(',')).join('|');
   const m=Object.keys(orderMsgs).map(k=>{ const th=orderMsgs[k]||[]; return k+':'+th.length+':'+(th.length?th[th.length-1].ts:0); }).join('|');
   const l=listings.map(x=>[x.id,x.verified,x.kg].join(',')).join('|');
   return o+'##'+m+'##'+l;
 }
+// Écoute en direct la collection "orders" (en plus du sondage classique
+// ci-dessous, qui reste la source de vérité pour les autres collections) :
+// sans ça, une nouvelle proposition d'horaire ou une acceptation côté
+// voyageur/client n'apparaissait qu'au prochain passage du minuteur (jusqu'à
+// 4s d'attente). Deux écoutes séparées pour la même raison que
+// fetchMyOrders() : Firestore ne sait pas faire "clientPhone == X OU
+// gpPhone == X" en une seule requête/écoute.
+let unsubOrdersClient=null, unsubOrdersGp=null;
+let realtimeOrdersClientMap={}, realtimeOrdersGpMap={};
+function mergeRealtimeOrdersAndRender(){
+  orders=Object.values({...realtimeOrdersClientMap, ...realtimeOrdersGpMap});
+  if(isTypingInChat()) return;
+  const sig=pollSig();
+  if(sig===lastPollSig) return;
+  lastPollSig=sig;
+  if(document.getElementById('viewOrders').style.display==='block') renderOrders();
+  if(document.getElementById('viewMytrips').style.display==='block') renderMyTrips();
+  if(document.getElementById('viewMydemandes').style.display==='block') renderMyDemandes();
+}
+function startOrdersRealtime(){
+  if(!me) return;
+  stopOrdersRealtime();
+  const myPhone=cleanPhone(me.phone);
+  realtimeOrdersClientMap={}; realtimeOrdersGpMap={};
+  unsubOrdersClient=db.collection('orders').where('clientPhone','==',myPhone).onSnapshot(snap=>{
+    realtimeOrdersClientMap={};
+    snap.forEach(d=>{ realtimeOrdersClientMap[d.id]=d.data(); });
+    mergeRealtimeOrdersAndRender();
+  }, ()=>{});
+  unsubOrdersGp=db.collection('orders').where('gpPhone','==',myPhone).onSnapshot(snap=>{
+    realtimeOrdersGpMap={};
+    snap.forEach(d=>{ realtimeOrdersGpMap[d.id]=d.data(); });
+    mergeRealtimeOrdersAndRender();
+  }, ()=>{});
+}
+function stopOrdersRealtime(){
+  if(unsubOrdersClient){ unsubOrdersClient(); unsubOrdersClient=null; }
+  if(unsubOrdersGp){ unsubOrdersGp(); unsubOrdersGp=null; }
+}
 function startPolling(){
   stopPolling();
+  startOrdersRealtime();
   pollTimer=setInterval(async ()=>{
     if(me && await isPhoneBlocked(me.phone)){
       stopPolling();
@@ -2089,7 +2135,7 @@ function startPolling(){
     checkTripReminders();
   }, 4000);
 }
-function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
+function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; stopOrdersRealtime(); }
 function tomorrowDateStr(){ const t=new Date(); t.setDate(t.getDate()+1); return new Date(t-t.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function checkTripReminders(){
   const banner=document.getElementById('tripReminderBanner');
@@ -2684,8 +2730,20 @@ function renderOrderActions(o){
         <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">${t('btnCancelMyOrder','Annuler ma commande')}</button>`;
     }
     if(!o.pickupTimeAccepted){
+      if(o.pickupProposedBy==='client'){
+        return `<div class="hint" style="margin-top:10px;">${t('pickupProposalSentHint','Proposition envoyée. En attente de la réponse du voyageur.')}</div>
+          <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">${t('btnCancelMyOrder','Annuler ma commande')}</button>`;
+      }
       return `<div class="hint" style="margin-top:10px;">${t('checkPickupPrompt',"Vérifiez le lieu et l'horaire proposés ci-dessus. S'ils vous conviennent, confirmez pour pouvoir payer.")}</div>
         <button class="btn gold sm" onclick="acceptPickupTime('${o.id}')">${ICON_CHECK}${t('acceptLocationTime',"J'accepte ce lieu et cet horaire")}</button>
+        <button class="btn ghost sm" onclick="document.getElementById('clientCounterForm-${o.id}').style.display='block'">${t('btnProposeOtherTime','Proposer un autre horaire')}</button>
+        <div id="clientCounterForm-${o.id}" style="display:none;margin-top:8px;">
+          <label>${t('pickupLocationLabel','Lieu de prise en charge')}</label>
+          <input type="text" id="clientPickupLoc-${o.id}" placeholder="${t('phLocationExample','Ex. Gare du Nord, Paris')}" value="${(o.pickupLocation||'').replace(/"/g,'&quot;')}">
+          <label>${t('proposedPickupTimeLabel','Horaire de prise en charge proposé')}</label>
+          <input type="datetime-local" id="clientPickupTime-${o.id}" max="${o.tripDate}T23:59">
+          <button class="btn gold sm" onclick="clientProposePickup('${o.id}')">${ICON_CHECK}${t('proposeToTraveler','Proposer au voyageur')}</button>
+        </div>
         <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">${t('btnCancelMyOrder','Annuler ma commande')}</button>`;
     }
     const discounts = me ? availableDiscounts(me.phone) : 0;
@@ -2733,6 +2791,19 @@ function renderOrderActions(o){
     `;
   }
   if(ordersRole==='gp' && ['accepted'].includes(o.status)){
+    if(!o.pickupTimeAccepted && o.pickupProposedBy==='client'){
+      return `<div class="hint" style="margin-top:10px;">${t('clientCounterProposalHeader','Le client propose un autre lieu et horaire de prise en charge :')}</div>
+        <button class="btn gold sm" onclick="acceptPickupTime('${o.id}')">${ICON_CHECK}${t('acceptLocationTime',"J'accepte ce lieu et cet horaire")}</button>
+        <button class="btn ghost sm" onclick="document.getElementById('gpCounterForm-${o.id}').style.display='block'">${t('btnProposeOtherTime','Proposer un autre horaire')}</button>
+        <div id="gpCounterForm-${o.id}" style="display:none;margin-top:8px;">
+          <label>${t('pickupLocationLabel','Lieu de prise en charge')}</label>
+          <input type="text" id="gpPickupLoc-${o.id}" placeholder="${t('phLocationExample','Ex. Gare du Nord, Paris')}" value="${(o.pickupLocation||'').replace(/"/g,'&quot;')}">
+          <label>${t('proposedPickupTimeLabel','Horaire de prise en charge proposé')}</label>
+          <input type="datetime-local" id="gpPickupTime-${o.id}" max="${o.tripDate}T23:59">
+          <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">${ICON_CHECK}${t('proposeToClient','Proposer au client')}</button>
+        </div>
+        ${canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">${t('cancelThisTrip','Annuler ce trajet')}</button>` : ''}`;
+    }
     return canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">${t('cancelThisTrip','Annuler ce trajet')}</button>` : '';
   }
   if(ordersRole==='gp' && o.status==='delivered'){
@@ -2803,9 +2874,21 @@ async function gpProposePickup(orderId){
   const time=document.getElementById('gpPickupTime-'+orderId).value;
   if(!loc||!time){ showToast("Merci de remplir le lieu et l'horaire"); return; }
   if(o.tripDate && time.slice(0,10)>o.tripDate){ showToast("La prise en charge doit avoir lieu avant ou le jour du départ ("+fmtDate(o.tripDate)+")"); return; }
-  o.pickupLocation=loc; o.pickupTime=time; o.pickupTimeAccepted=false;
+  o.pickupLocation=loc; o.pickupTime=time; o.pickupTimeAccepted=false; o.pickupProposedBy='gp';
   await saveOrders([orderId]);
   showToast("Lieu et horaire proposés au client !");
+  renderOrders();
+}
+async function clientProposePickup(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const loc=document.getElementById('clientPickupLoc-'+orderId).value.trim();
+  const time=document.getElementById('clientPickupTime-'+orderId).value;
+  if(!loc||!time){ showToast("Merci de remplir le lieu et l'horaire"); return; }
+  if(o.tripDate && time.slice(0,10)>o.tripDate){ showToast("La prise en charge doit avoir lieu avant ou le jour du départ ("+fmtDate(o.tripDate)+")"); return; }
+  o.pickupLocation=loc; o.pickupTime=time; o.pickupTimeAccepted=false; o.pickupProposedBy='client';
+  await saveOrders([orderId]);
+  showToast("Lieu et horaire proposés au voyageur !");
   renderOrders();
 }
 async function acceptPickupTime(orderId){
