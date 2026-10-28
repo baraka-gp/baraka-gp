@@ -2837,34 +2837,40 @@ function renderOrderActions(o){
 async function respondOrder(orderId, status){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
-  let noSuggestionReason=null;
-  let geoUpdate=null;
-  if(status==='accepted' && !o.pickupLocation){
-    showToast("Acceptation en cours...");
-    const gpGeo=await getGeoPosition();
-    // Le rafraîchissement automatique (toutes les 4s) peut avoir remplacé le
-    // tableau `orders` pendant cette attente : on retrouve la commande à jour
-    // juste avant d'appliquer les changements, pour ne pas perdre
-    // l'acceptation si l'objet d'origine n'est plus dans le tableau.
-    if(!gpGeo){
-      noSuggestionReason="Votre position n'a pas pu être utilisée (accès refusé ou indisponible) — activez la localisation pour ce site si vous voulez que l'app propose un lieu automatiquement.";
-    }else if(o.clientLat==null || o.clientLng==null){
-      geoUpdate={gpLat:gpGeo.lat, gpLng:gpGeo.lng};
-      noSuggestionReason="Le client n'a pas partagé sa position, donc l'app n'a pas pu suggérer de lieu.";
-    }else{
-      const suggestion=await suggestMeetingPoint(o.clientLat, o.clientLng, gpGeo.lat, gpGeo.lng);
-      geoUpdate={gpLat:gpGeo.lat, gpLng:gpGeo.lng};
-      if(suggestion){ geoUpdate.pickupLocation=suggestion; geoUpdate.pickupSuggested=true; }
-      else{ noSuggestionReason="Le service de cartographie n'a pas répondu — proposez un lieu vous-même."; }
-    }
-  }
-  const fresh=orders.find(x=>x.id===orderId) || o;
-  fresh.status=status;
-  if(status==='cancelled_gp' || status==='cancelled_client') fresh.adminSeen=false;
-  if(status==='accepted') fresh.acceptedAt=Date.now();
-  if(geoUpdate) Object.assign(fresh, geoUpdate);
+  // L'acceptation elle-même (et sa sauvegarde) ne doit jamais attendre la
+  // géolocalisation/suggestion de lieu : ça pouvait prendre jusqu'à 10-12s
+  // (délai de la géoloc + délai du service de cartographie) pendant
+  // lesquels l'écran ne bougeait pas, donnant l'impression que l'app était
+  // bloquée. La suggestion de lieu continue en arrière-plan juste après
+  // (suggestPickupInBackground) et met à jour l'écran quand elle arrive.
+  o.status=status;
+  if(status==='cancelled_gp' || status==='cancelled_client') o.adminSeen=false;
+  if(status==='accepted') o.acceptedAt=Date.now();
   await saveOrders([orderId]);
-  showToast(status==='accepted' ? (fresh.pickupSuggested ? "Commande acceptée ! Point de RDV suggéré automatiquement." : "Commande acceptée !"+(noSuggestionReason?" "+noSuggestionReason:"")) : "Mise à jour effectuée");
+  showToast(status==='accepted' ? "Commande acceptée !" : "Mise à jour effectuée");
+  renderOrders();
+  if(status==='accepted' && !o.pickupLocation) suggestPickupInBackground(orderId);
+}
+async function suggestPickupInBackground(orderId){
+  const gpGeo=await getGeoPosition();
+  if(!gpGeo) return;
+  // Le rafraîchissement automatique (toutes les 4s, ou l'écoute en temps
+  // réel) peut avoir remplacé le tableau `orders`, ou la commande peut avoir
+  // été annulée, pendant cette attente : on la retrouve à jour et on
+  // abandonne si elle n'est plus dans l'état attendu.
+  const fresh=orders.find(x=>x.id===orderId);
+  if(!fresh || fresh.status!=='accepted' || fresh.pickupLocation) return;
+  fresh.gpLat=gpGeo.lat; fresh.gpLng=gpGeo.lng;
+  if(fresh.clientLat!=null && fresh.clientLng!=null){
+    const suggestion=await suggestMeetingPoint(fresh.clientLat, fresh.clientLng, gpGeo.lat, gpGeo.lng);
+    const stillFresh=orders.find(x=>x.id===orderId);
+    if(!stillFresh || stillFresh.status!=='accepted' || stillFresh.pickupLocation) return;
+    if(suggestion){ stillFresh.pickupLocation=suggestion; stillFresh.pickupSuggested=true; }
+    await saveOrders([orderId]);
+    if(suggestion) showToast("Point de RDV suggéré automatiquement, vérifiez-le avant de l'envoyer au client.");
+  }else{
+    await saveOrders([orderId]);
+  }
   renderOrders();
 }
 async function gpProposePickup(orderId){

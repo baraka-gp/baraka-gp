@@ -525,30 +525,52 @@ exports.notifyOrderPaid = onDocumentUpdated({ document: 'orders/{orderId}', regi
   });
 });
 
-// Notification push au client dès que le voyageur propose un lieu et un
-// horaire de prise en charge.
+// Notification push à l'AUTRE partie dès qu'un lieu et un horaire de prise
+// en charge sont proposés — le voyageur peut proposer, mais le client peut
+// aussi faire une contre-proposition, donc le destinataire dépend de
+// pickupProposedBy (absent/'gp' = proposition du voyageur → prévenir le
+// client ; 'client' = contre-proposition → prévenir le voyageur).
 exports.notifyPickupProposed = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
   const before = event.data.before.data();
   const after = event.data.after.data();
   if (!after.pickupLocation || before.pickupLocation === after.pickupLocation) return;
-  await sendPush(after.clientPhone, {
-    title: after.gpName || 'Lieu de prise en charge proposé',
-    body: `a proposé un lieu et un horaire de prise en charge pour votre colis.`,
-    tag: `order-${event.params.orderId}`,
-  });
+  if (after.pickupProposedBy === 'client') {
+    await sendPush(after.gpPhone, {
+      title: after.clientName || 'Lieu de prise en charge proposé',
+      body: `propose un autre lieu et horaire de prise en charge pour le colis.`,
+      tag: `order-${event.params.orderId}`,
+    });
+  } else {
+    await sendPush(after.clientPhone, {
+      title: after.gpName || 'Lieu de prise en charge proposé',
+      body: `a proposé un lieu et un horaire de prise en charge pour votre colis.`,
+      tag: `order-${event.params.orderId}`,
+    });
+  }
 });
 
-// Notification push au voyageur dès que le client confirme le lieu et
-// l'horaire de prise en charge qu'il a proposés.
+// Notification push à celui qui avait proposé le lieu/horaire, dès que
+// l'autre partie l'accepte — avant la contre-proposition, c'était toujours
+// le voyageur qui proposait, donc toujours le voyageur qu'on prévenait ;
+// pickupProposedBy (sur le document précédent, puisqu'il ne change pas à
+// l'acceptation) dit maintenant qui attendait une réponse.
 exports.notifyPickupTimeAccepted = onDocumentUpdated({ document: 'orders/{orderId}', region: REGION }, async (event) => {
   const before = event.data.before.data();
   const after = event.data.after.data();
   if (before.pickupTimeAccepted || !after.pickupTimeAccepted) return;
-  await sendPush(after.gpPhone, {
-    title: after.clientName || 'Lieu confirmé',
-    body: `a confirmé le lieu et l'horaire de prise en charge.`,
-    tag: `order-${event.params.orderId}`,
-  });
+  if (before.pickupProposedBy === 'client') {
+    await sendPush(after.clientPhone, {
+      title: after.gpName || 'Lieu confirmé',
+      body: `a accepté le lieu et l'horaire que vous avez proposés.`,
+      tag: `order-${event.params.orderId}`,
+    });
+  } else {
+    await sendPush(after.gpPhone, {
+      title: after.clientName || 'Lieu confirmé',
+      body: `a confirmé le lieu et l'horaire de prise en charge.`,
+      tag: `order-${event.params.orderId}`,
+    });
+  }
 });
 
 // Notification push au client dès que le voyageur a récupéré le colis.
