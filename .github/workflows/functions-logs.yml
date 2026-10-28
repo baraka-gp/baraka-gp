@@ -48,11 +48,8 @@ on:
       add_authorized_domain:
         description: 'Domaine à ajouter aux domaines autorisés Firebase Auth, ex baraka-gp.github.io (laisser vide pour ne rien faire)'
         required: false
-      check_recaptcha_keys:
-        description: 'Lister les clés reCAPTCHA Enterprise du projet et leurs domaines autorisés (oui/non)'
-        required: false
-      add_recaptcha_domain:
-        description: 'Domaine à ajouter aux domaines autorisés de toutes les clés reCAPTCHA Enterprise, ex baraka-gp.github.io (laisser vide pour ne rien faire)'
+      reconcile_payments:
+        description: 'Vérifier les commandes "acceptée" avec un paiement Stripe déjà réussi mais jamais marquées payées (ex. suite à une panne du webhook), et les corriger (oui/non)'
         required: false
       check_api_key_restrictions:
         description: 'Vérifier les restrictions (referrers HTTP autorisés) de la clé API Firebase du site (oui/non)'
@@ -356,50 +353,38 @@ jobs:
           echo "=== Nouveaux domaines autorisés ==="
           jq '.authorizedDomains' /tmp/updated.json
 
-      - name: Lister les clés reCAPTCHA Enterprise
-        if: inputs.check_recaptcha_keys != ''
-        run: |
-          set -e
-          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
-          TOKEN=$(gcloud auth print-access-token)
-          curl -sS "https://recaptchaenterprise.googleapis.com/v1/projects/baraka-gp/keys" \
-            -H "Authorization: Bearer $TOKEN" -o /tmp/keys.json
-          echo "=== Réponse brute ==="
-          cat /tmp/keys.json
-          echo ""
-          jq '.keys[]? | {name, displayName, webSettings}' /tmp/keys.json
-
-      - name: Ajouter un domaine aux clés reCAPTCHA Enterprise
-        if: inputs.add_recaptcha_domain != ''
+      - name: Réconcilier les paiements Stripe non reflétés dans Firestore
+        if: inputs.reconcile_payments != ''
         env:
-          DOMAIN: ${{ inputs.add_recaptcha_domain }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
           set -e
-          gcloud auth login --cred-file="${GOOGLE_GHA_CREDS_PATH}"
-          TOKEN=$(gcloud auth print-access-token)
-          curl -sS "https://recaptchaenterprise.googleapis.com/v1/projects/baraka-gp/keys" \
-            -H "Authorization: Bearer $TOKEN" -o /tmp/keys.json
-          echo "=== Clés trouvées ==="
-          jq '.keys[] | {name, displayName, webSettings}' /tmp/keys.json
-          jq -r '.keys[]?.name // empty' /tmp/keys.json > /tmp/key_names.txt
-          while IFS= read -r KEYNAME; do
-            [ -z "$KEYNAME" ] && continue
-            echo "--- Mise à jour de $KEYNAME ---"
-            curl -sS "https://recaptchaenterprise.googleapis.com/v1/$KEYNAME" -H "Authorization: Bearer $TOKEN" -o /tmp/key.json
-            node -e "
-              const key = JSON.parse(require('fs').readFileSync('/tmp/key.json', 'utf8'));
-              const domains = new Set((key.webSettings && key.webSettings.allowedDomains) || []);
-              domains.add(process.env.DOMAIN);
-              key.webSettings = key.webSettings || {};
-              key.webSettings.allowedDomains = [...domains];
-              require('fs').writeFileSync('/tmp/key-body.json', JSON.stringify(key.webSettings));
-            "
-            curl -sS -X PATCH "https://recaptchaenterprise.googleapis.com/v1/$KEYNAME?updateMask=web_settings.allowed_domains" \
-              -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-              -d "{\"webSettings\": $(cat /tmp/key-body.json)}" \
-              -o /tmp/key-updated.json
-            jq '{name, webSettings}' /tmp/key-updated.json
-          done < /tmp/key_names.txt
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            const Stripe = require('stripe');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
+            (async () => {
+              const db = admin.firestore();
+              const snap = await db.collection('orders').where('status', '==', 'accepted').get();
+              const candidates = snap.docs.filter(d => d.data().stripePaymentIntentId);
+              console.log('Commandes acceptées avec un paiement initié :', candidates.length);
+              let fixed = 0;
+              for (const doc of candidates) {
+                const order = doc.data();
+                const pi = await stripe.paymentIntents.retrieve(order.stripePaymentIntentId);
+                console.log('-', doc.id, '| PaymentIntent', pi.id, '| statut Stripe réel :', pi.status);
+                if (pi.status === 'succeeded') {
+                  const pickupCode = order.pickupCode || String(Math.floor(1000 + Math.random() * 9000));
+                  await doc.ref.set({ status: 'paid', pickupCode, paidAt: order.paidAt || Date.now() }, { merge: true });
+                  console.log('  -> corrigé : marquée payée (le paiement avait déjà réussi côté Stripe)');
+                  fixed++;
+                }
+              }
+              console.log('Commandes corrigées :', fixed);
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
 
       - name: Vérifier les restrictions de la clé API Firebase
         if: inputs.check_api_key_restrictions != ''
