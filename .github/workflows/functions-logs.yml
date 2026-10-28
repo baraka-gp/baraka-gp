@@ -18,8 +18,8 @@ on:
       admin_email:
         description: 'Email à déclarer admin (laisser vide pour ne rien faire)'
         required: false
-      register_apple_pay_domain:
-        description: 'Domaine à déclarer pour Apple Pay auprès de Stripe (laisser vide pour ne rien faire)'
+      fix_webhook_endpoint:
+        description: 'ID du webhook Stripe à réactiver (we_..., trouvé via check_webhook_endpoints) si Stripe l a désactivé (laisser vide pour ne rien faire)'
         required: false
       check_stripe_account:
         description: 'Vérifier le statut du compte plateforme Stripe (oui/non)'
@@ -155,17 +155,17 @@ jobs:
             })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
           "
 
-      - name: Déclarer le domaine Apple Pay auprès de Stripe
-        if: inputs.register_apple_pay_domain != ''
+      - name: Réactiver un webhook Stripe désactivé
+        if: inputs.fix_webhook_endpoint != ''
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-          DOMAIN: ${{ inputs.register_apple_pay_domain }}
+          ENDPOINT_ID: ${{ inputs.fix_webhook_endpoint }}
         run: |
           set -e
-          curl -sS https://api.stripe.com/v1/apple_pay/domains \
+          curl -sS "https://api.stripe.com/v1/webhook_endpoints/$ENDPOINT_ID" \
             -u "$STRIPE_SECRET_KEY:" \
-            -d "domain_name=$DOMAIN"
-          echo ""
+            -d "disabled=false" -o /tmp/webhook-fixed.json
+          jq '{id, url, status, enabled_events}' /tmp/webhook-fixed.json
 
       - name: Vérifier le statut du compte plateforme Stripe
         if: inputs.check_stripe_account != ''
