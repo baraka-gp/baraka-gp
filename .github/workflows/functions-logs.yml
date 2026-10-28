@@ -359,7 +359,7 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: |
           set -e
-          npm install firebase-admin@12
+          npm install firebase-admin@12 stripe@16
           node -e "
             const admin = require('firebase-admin');
             const Stripe = require('stripe');

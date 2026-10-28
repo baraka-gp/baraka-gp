@@ -404,7 +404,7 @@
       <div class="rules-box" style="background:var(--green-pale);">
         <label class="check-line"><input type="checkbox" id="sAcceptAll"> <span data-i18n="confirmNoForbidden">Je confirme ne transporter aucun de ces objets.</span></label>
       </div>
-      <button class="btn gold" data-i18n="sendMyRequest" onclick="publishColis()">Envoyer ma demande</button>
+      <button class="btn gold" id="publishColisBtn" data-i18n="sendMyRequest" onclick="publishColis()">Envoyer ma demande</button>
     </div>
   </div>
 
@@ -550,7 +550,7 @@
     <div class="price-recap">
       <div class="price-recap-row"><span>Prix total</span><b id="oPriceTotal">—</b></div>
     </div>
-    <button class="btn gold" onclick="submitOrder()">Envoyer la commande</button>
+    <button class="btn gold" id="submitOrderBtn" onclick="submitOrder()">Envoyer la commande</button>
     <button class="btn ghost" onclick="closeOrderModal()">Annuler</button>
   </div>
 </div>
@@ -2410,7 +2410,7 @@ function displayResults(country, from, to, sortBy, minKg){
     list.innerHTML=`
       <div class="panel" style="text-align:center;">
         <div class="sub" style="margin-bottom:14px;">${t('emptyNoMatch',"Aucun trajet ne correspond pour l'instant.")}</div>
-        <button class="btn gold" onclick="createAlert()">${t('publishMyRequest','📢 Publier ma demande')}</button>
+        <button class="btn gold" id="createAlertBtn" onclick="createAlert()">${t('publishMyRequest','📢 Publier ma demande')}</button>
       </div>`;
     return;
   }
@@ -2446,11 +2446,18 @@ function displayResults(country, from, to, sortBy, minKg){
 }
 
 async function createAlert(){
-  const name=me.name, phone=me.phone;
-  alerts.push({id:Date.now().toString(),name,phone,country:document.getElementById('searchCountry').value,from:document.getElementById('searchFrom').value.trim(),to:document.getElementById('searchTo').value.trim(),notified:false,createdAt:Date.now()});
-  await saveAlerts();
-  ensureThread(phone,name); await saveMessages();
-  showToast("Demande publiée ! On vous préviendra dès qu'un GP correspond 📢");
+  const btn=document.getElementById('createAlertBtn');
+  if(btn && btn.disabled) return;
+  if(btn) btn.disabled=true;
+  try{
+    const name=me.name, phone=me.phone;
+    alerts.push({id:Date.now().toString(),name,phone,country:document.getElementById('searchCountry').value,from:document.getElementById('searchFrom').value.trim(),to:document.getElementById('searchTo').value.trim(),notified:false,createdAt:Date.now()});
+    await saveAlerts();
+    ensureThread(phone,name); await saveMessages();
+    showToast("Demande publiée ! On vous préviendra dès qu'un GP correspond 📢");
+  } finally {
+    if(btn) btn.disabled=false;
+  }
 }
 
 // ---- ORDER MODAL (commander) ----
@@ -2487,61 +2494,68 @@ function updateOrderPrice(){
   }else{ box.innerHTML=''; }
 }
 async function submitOrder(){
-  const l=pendingListing;
-  const kg=parseInt(document.getElementById('oKg').value);
-  const desc=document.getElementById('oDesc').value.trim();
-  const recipientName=document.getElementById('oRecipient').value.trim();
-  const weightProofFile=document.getElementById('oWeightProof').files[0];
-
-  const maxKg=remainingKg(l);
-  if(!kg||kg<1||kg>maxKg){ showToast(maxKg<=0 ? "Ce trajet est complet, il n'y a plus de place disponible" : `Merci d'indiquer un poids valide (max ${maxKg}kg)`); return; }
-  if(!recipientName){ showToast("Merci d'indiquer le nom du destinataire"); return; }
-  if(!weightProofFile){ showToast("Merci d'ajouter une photo du colis sur une balance"); return; }
-  if(!document.getElementById('oAcceptAll').checked){ showToast("Merci de cocher la case de vérification"); return; }
-
-  showToast("Envoi en cours...");
-  let weightProof;
+  const btn=document.getElementById('submitOrderBtn');
+  if(btn && btn.disabled) return;
+  if(btn) btn.disabled=true;
   try{
-    weightProof=await compressImage(weightProofFile);
-  }catch(e){ showToast("Impossible de lire la photo"); return; }
+    const l=pendingListing;
+    const kg=parseInt(document.getElementById('oKg').value);
+    const desc=document.getElementById('oDesc').value.trim();
+    const recipientName=document.getElementById('oRecipient').value.trim();
+    const weightProofFile=document.getElementById('oWeightProof').files[0];
 
-  const freshMaxKg=await remainingKgLive(l);
-  if(kg>freshMaxKg){ showToast(freshMaxKg<=0 ? "Ce trajet vient d'être complété par une autre commande" : `Il ne reste plus que ${freshMaxKg}kg disponibles sur ce trajet`); return; }
+    const maxKg=remainingKg(l);
+    if(!kg||kg<1||kg>maxKg){ showToast(maxKg<=0 ? "Ce trajet est complet, il n'y a plus de place disponible" : `Merci d'indiquer un poids valide (max ${maxKg}kg)`); return; }
+    if(!recipientName){ showToast("Merci d'indiquer le nom du destinataire"); return; }
+    if(!weightProofFile){ showToast("Merci d'ajouter une photo du colis sur une balance"); return; }
+    if(!document.getElementById('oAcceptAll').checked){ showToast("Merci de cocher la case de vérification"); return; }
 
-  const geo=await getGeoPosition();
+    showToast("Envoi en cours...");
+    let weightProof;
+    try{
+      weightProof=await compressImage(weightProofFile);
+    }catch(e){ showToast("Impossible de lire la photo"); return; }
 
-  let total=kg*PRICE_PER_KG;
-  const commission=kg*COMMISSION_PER_KG;
-  let discountUsed=false;
-  const useDiscountEl=document.getElementById('useDiscount');
-  if(useDiscountEl && useDiscountEl.checked){
-    total=Math.max(0,total-5);
-    discountUsed=true;
-    const key=ensurePoints(me.phone);
-    points[key].points -= 50;
-    await savePoints();
-    updatePointsHeader();
+    const freshMaxKg=await remainingKgLive(l);
+    if(kg>freshMaxKg){ showToast(freshMaxKg<=0 ? "Ce trajet vient d'être complété par une autre commande" : `Il ne reste plus que ${freshMaxKg}kg disponibles sur ce trajet`); return; }
+
+    const geo=await getGeoPosition();
+
+    let total=kg*PRICE_PER_KG;
+    const commission=kg*COMMISSION_PER_KG;
+    let discountUsed=false;
+    const useDiscountEl=document.getElementById('useDiscount');
+    if(useDiscountEl && useDiscountEl.checked){
+      total=Math.max(0,total-5);
+      discountUsed=true;
+      const key=ensurePoints(me.phone);
+      points[key].points -= 50;
+      await savePoints();
+      updatePointsHeader();
+    }
+
+    const order={
+      id:Date.now().toString(), listingId:l.id,
+      gpPhone:cleanPhone(l.phone), gpName:(profiles[l.phone]||{}).name||'Voyageur',
+      clientPhone:cleanPhone(me.phone), clientName:me.name,
+      from:l.from, to:l.to, country:l.country, tripDate:l.date, arrivalDateTime:l.arrivalDateTime||null,
+      packageType:orderPackageType,
+      kg, weightProof, desc, recipientName,
+      priceTotal:total, commission, priceNet:(kg*PRICE_PER_KG)-commission, discountUsed,
+      pickupLocation:'', pickupSuggested:false, pickupTime:'',
+      clientLat:geo?geo.lat:null, clientLng:geo?geo.lng:null, gpLat:null, gpLng:null,
+      status:'pending', deliveryCode:null, rating:null, ratingComment:null,
+      createdAt:Date.now()
+    };
+    orders.push(order);
+    await saveOrders([order.id]);
+    ensureThread(me.phone, me.name);
+    closeOrderModal();
+    showToast("Commande envoyée ! En attente de réponse du voyageur 🙏");
+    switchTab('orders');
+  } finally {
+    if(btn) btn.disabled=false;
   }
-
-  const order={
-    id:Date.now().toString(), listingId:l.id,
-    gpPhone:cleanPhone(l.phone), gpName:(profiles[l.phone]||{}).name||'Voyageur',
-    clientPhone:cleanPhone(me.phone), clientName:me.name,
-    from:l.from, to:l.to, country:l.country, tripDate:l.date, arrivalDateTime:l.arrivalDateTime||null,
-    packageType:orderPackageType,
-    kg, weightProof, desc, recipientName,
-    priceTotal:total, commission, priceNet:(kg*PRICE_PER_KG)-commission, discountUsed,
-    pickupLocation:'', pickupSuggested:false, pickupTime:'',
-    clientLat:geo?geo.lat:null, clientLng:geo?geo.lng:null, gpLat:null, gpLng:null,
-    status:'pending', deliveryCode:null, rating:null, ratingComment:null,
-    createdAt:Date.now()
-  };
-  orders.push(order);
-  await saveOrders([order.id]);
-  ensureThread(me.phone, me.name);
-  closeOrderModal();
-  showToast("Commande envoyée ! En attente de réponse du voyageur 🙏");
-  switchTab('orders');
 }
 
 // ---- MY TRIPS TAB ----
@@ -3451,37 +3465,44 @@ async function removeMyListing(id){
 }
 
 async function publishColis(){
-  const name=document.getElementById('sName').value.trim();
-  const phone=document.getElementById('sPhone').value.trim();
-  const from=document.getElementById('sFrom').value.trim();
-  const to=document.getElementById('sTo').value.trim();
-  const country=document.getElementById('sCountry').value;
-  const date=document.getElementById('sDate').value;
-  const kg=document.getElementById('sKg').value;
-  const desc=document.getElementById('sDesc').value.trim();
-  const recipientName=document.getElementById('sRecipient').value.trim();
-  const photoFile=document.getElementById('sPhoto').files[0];
+  const btn=document.getElementById('publishColisBtn');
+  if(btn && btn.disabled) return;
+  if(btn) btn.disabled=true;
+  try{
+    const name=document.getElementById('sName').value.trim();
+    const phone=document.getElementById('sPhone').value.trim();
+    const from=document.getElementById('sFrom').value.trim();
+    const to=document.getElementById('sTo').value.trim();
+    const country=document.getElementById('sCountry').value;
+    const date=document.getElementById('sDate').value;
+    const kg=document.getElementById('sKg').value;
+    const desc=document.getElementById('sDesc').value.trim();
+    const recipientName=document.getElementById('sRecipient').value.trim();
+    const photoFile=document.getElementById('sPhoto').files[0];
 
-  if(!name||!phone||!from||!to||!kg||!recipientName){ showToast("Merci de remplir tous les champs"); return; }
-  if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
-  if(!photoFile){ showToast("Merci d'ajouter une photo"); return; }
-  if(!document.getElementById('sAcceptAll').checked){ showToast("Merci de cocher la case de vérification"); return; }
+    if(!name||!phone||!from||!to||!kg||!recipientName){ showToast("Merci de remplir tous les champs"); return; }
+    if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
+    if(!photoFile){ showToast("Merci d'ajouter une photo"); return; }
+    if(!document.getElementById('sAcceptAll').checked){ showToast("Merci de cocher la case de vérification"); return; }
 
-  showToast("Envoi en cours...");
-  let photo;
-  try{ photo=await compressImage(photoFile); }catch(e){ showToast("Photo illisible"); return; }
-  const geo=await getGeoPosition();
+    showToast("Envoi en cours...");
+    let photo;
+    try{ photo=await compressImage(photoFile); }catch(e){ showToast("Photo illisible"); return; }
+    const geo=await getGeoPosition();
 
-  listings.push({id:Date.now().toString(),type:'colis',name,phone,from,to,country,date,kg:parseInt(kg),desc,recipientName,verified:false,photo,clientLat:geo?geo.lat:null,clientLng:geo?geo.lng:null});
-  await saveListings();
-  ensureThread(phone,name); await saveMessages();
-  showToast("Demande envoyée ! 🙏");
+    listings.push({id:Date.now().toString(),type:'colis',name,phone,from,to,country,date,kg:parseInt(kg),desc,recipientName,verified:false,photo,clientLat:geo?geo.lat:null,clientLng:geo?geo.lng:null});
+    await saveListings();
+    ensureThread(phone,name); await saveMessages();
+    showToast("Demande envoyée ! 🙏");
 
-  ['sName','sPhone','sFrom','sTo','sDate','sKg','sDesc','sPhoto','sRecipient'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('sAcceptAll').checked=false;
-  ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('searchCountry').value='';
-  switchTab('search');
+    ['sName','sPhone','sFrom','sTo','sDate','sKg','sDesc','sPhoto','sRecipient'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('sAcceptAll').checked=false;
+    ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('searchCountry').value='';
+    switchTab('search');
+  } finally {
+    if(btn) btn.disabled=false;
+  }
 }
 
 // ---- RECEIVE MODE (destinataire, sans compte) ----
