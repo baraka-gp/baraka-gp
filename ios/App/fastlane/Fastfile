@@ -53,6 +53,14 @@ platform :ios do
     # on reconstruit nous-mêmes le vrai chemin avec ce suffixe.
     keychain_path = File.expand_path("~/Library/Keychains/ci_build.keychain-db")
 
+    # Chaque run CI repart d'un trousseau vierge (machine éphémère), donc cert
+    # ne trouve jamais localement un certificat existant et en crée un nouveau
+    # à chaque fois — jusqu'à atteindre la limite Apple du nombre de
+    # certificats de distribution actifs (run #18 : "reached the maximum
+    # number of available Distribution certificates"). On révoque les anciens
+    # avant d'en créer un nouveau, à chaque run, pour ne jamais buter dessus.
+    Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: ["DISTRIBUTION", "IOS_DISTRIBUTION"] }).each(&:delete!)
+
     cert(
       keychain_path: keychain_path,
       team_id: TEAM_ID
