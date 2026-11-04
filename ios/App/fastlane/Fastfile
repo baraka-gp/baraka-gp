@@ -20,7 +20,7 @@ platform :ios do
       scheme: "App",
       project: "App.xcodeproj",
       export_method: "app-store",
-      allow_provisioning_updates: true
+      xcargs: "-allowProvisioningUpdates -authenticationKeyPath \"#{api_key[:key_filepath]}\" -authenticationKeyID \"#{api_key[:key_id]}\" -authenticationKeyIssuerID \"#{api_key[:issuer_id]}\""
     )
 
     upload_to_testflight(
