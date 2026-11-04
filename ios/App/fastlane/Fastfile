@@ -59,7 +59,7 @@ platform :ios do
     # certificats de distribution actifs (run #18 : "reached the maximum
     # number of available Distribution certificates"). On révoque les anciens
     # avant d'en créer un nouveau, à chaque run, pour ne jamais buter dessus.
-    Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: ["DISTRIBUTION", "IOS_DISTRIBUTION"] }).each(&:delete!)
+    Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: ["DISTRIBUTION", "IOS_DISTRIBUTION"].join(",") }).each(&:delete!)
 
     cert(
       keychain_path: keychain_path,
