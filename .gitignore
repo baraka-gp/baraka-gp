@@ -1,3 +1,10 @@
 functions/node_modules/
+node_modules/
 .firebase/
 *.log
+www/
+ios/App/Pods/
+ios/App/build/
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+*.ipa

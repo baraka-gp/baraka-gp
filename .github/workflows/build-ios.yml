@@ -1,0 +1,33 @@
+name: Compiler et envoyer l'app iOS (TestFlight)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer les dépendances npm (Capacitor)
+        run: npm ci
+
+      - name: Préparer les fichiers web et synchroniser le projet iOS
+        run: npm run ios:sync
+
+      - name: Installer Fastlane
+        run: gem install fastlane -N
+
+      - name: Compiler et envoyer sur TestFlight
+        working-directory: ios/App
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+        run: fastlane testflight
