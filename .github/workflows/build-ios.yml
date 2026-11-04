@@ -1,6 +1,10 @@
 name: Compiler et envoyer l'app iOS (TestFlight)
 
 on:
+  push:
+    branches: [claude/new-session-rtyzv8]
+    paths:
+      - '.github/workflows/build-ios.yml'
   workflow_dispatch: {}
 
 jobs:
