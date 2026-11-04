@@ -1,3 +1,5 @@
+require "shellwords"
+
 default_platform(:ios)
 
 APP_IDENTIFIER = "com.barakagp.app"
@@ -55,6 +57,14 @@ platform :ios do
       keychain_path: keychain_path,
       team_id: TEAM_ID
     )
+
+    # Sans ça, codesign bloque indéfiniment (run #10, > 1h sans erreur ni
+    # succès) : macOS demande une confirmation GUI pour autoriser l'accès à
+    # la clé privée du certificat qu'on vient d'importer, mais cette boîte
+    # de dialogue est invisible en CI headless et n'est jamais validée.
+    # Cette commande autorise explicitement codesign (et les outils Apple) à
+    # utiliser la clé sans prompt.
+    sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ci_build_password #{keychain_path.shellescape}")
 
     sigh(
       app_identifier: APP_IDENTIFIER,
