@@ -3,11 +3,19 @@ default_platform(:ios)
 platform :ios do
   desc "Compile l'app et l'envoie sur TestFlight (App Store Connect)"
   lane :testflight do
+    # app_store_connect_api_key ne renvoie un :key_filepath exploitable que si
+    # on lui donne un chemin de fichier en entrée — avec :key_content (notre
+    # cas, pour éviter de manipuler un fichier depuis le secret GitHub), le
+    # hash renvoyé n'a qu'une clé :key (le contenu), pas de chemin. xcodebuild
+    # a besoin d'un vrai chemin de fichier pour -authenticationKeyPath, donc
+    # on écrit nous-mêmes la clé sur disque et on lui passe ce chemin.
+    key_path = File.expand_path("asc_api_key.p8")
+    File.write(key_path, ENV["ASC_KEY_CONTENT"])
+
     api_key = app_store_connect_api_key(
       key_id: ENV["ASC_KEY_ID"],
       issuer_id: ENV["ASC_ISSUER_ID"],
-      key_content: ENV["ASC_KEY_CONTENT"],
-      is_key_content_base64: false,
+      key_filepath: key_path,
       in_house: false
     )
 
@@ -20,7 +28,7 @@ platform :ios do
       scheme: "App",
       project: "App.xcodeproj",
       export_method: "app-store",
-      xcargs: "-allowProvisioningUpdates -authenticationKeyPath \"#{api_key[:key_filepath]}\" -authenticationKeyID \"#{api_key[:key_id]}\" -authenticationKeyIssuerID \"#{api_key[:issuer_id]}\""
+      xcargs: "-allowProvisioningUpdates -authenticationKeyPath \"#{key_path}\" -authenticationKeyID \"#{ENV['ASC_KEY_ID']}\" -authenticationKeyIssuerID \"#{ENV['ASC_ISSUER_ID']}\""
     )
 
     upload_to_testflight(
