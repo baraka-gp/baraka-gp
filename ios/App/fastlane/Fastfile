@@ -43,7 +43,13 @@ platform :ios do
       timeout: 3600,
       lock_when_sleeps: false
     )
-    keychain_path = Actions.lane_context[SharedValues::KEYCHAIN_PATH]
+    # KEYCHAIN_PATH dans le contexte de la lane renvoie le chemin "brut" tel
+    # que passé à `security create-keychain` (ex. "~/Library/Keychains/
+    # ci_build.keychain"), mais macOS ajoute lui-même le suffixe "-db" au
+    # fichier réellement créé sur disque — confirmé dans les logs du run
+    # précédent. `cert` vérifie que le fichier existe à ce chemin exact, donc
+    # on reconstruit nous-mêmes le vrai chemin avec ce suffixe.
+    keychain_path = File.expand_path("~/Library/Keychains/ci_build.keychain-db")
 
     cert(
       keychain_path: keychain_path,
