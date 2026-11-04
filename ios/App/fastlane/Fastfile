@@ -20,7 +20,7 @@ platform :ios do
       scheme: "App",
       project: "App.xcodeproj",
       export_method: "app-store",
-      xcargs: "-allowProvisioningUpdates"
+      allow_provisioning_updates: true
     )
 
     upload_to_testflight(
