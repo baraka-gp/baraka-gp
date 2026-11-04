@@ -1,18 +1,22 @@
 default_platform(:ios)
 
+APP_IDENTIFIER = "com.barakagp.app"
+TEAM_ID = "27Z7N8UZ7K"
+
 platform :ios do
   desc "Compile l'app et l'envoie sur TestFlight (App Store Connect)"
   lane :testflight do
     # app_store_connect_api_key ne renvoie un :key_filepath exploitable que si
-    # on lui donne un chemin de fichier en entrée — avec :key_content (notre
-    # cas, pour éviter de manipuler un fichier depuis le secret GitHub), le
-    # hash renvoyé n'a qu'une clé :key (le contenu), pas de chemin. xcodebuild
-    # a besoin d'un vrai chemin de fichier pour -authenticationKeyPath, donc
-    # on écrit nous-mêmes la clé sur disque et on lui passe ce chemin.
+    # on lui donne un chemin de fichier en entrée — avec :key_content, le
+    # hash renvoyé n'a qu'une clé :key (le contenu), pas de chemin. On écrit
+    # donc nous-mêmes la clé sur disque et on lui passe ce chemin.
     key_path = File.expand_path("asc_api_key.p8")
     File.write(key_path, ENV["ASC_KEY_CONTENT"])
 
-    api_key = app_store_connect_api_key(
+    # Partagé automatiquement avec cert/sigh/upload_to_testflight ci-dessous
+    # (ils lisent APP_STORE_CONNECT_API_KEY dans le contexte de la lane tout
+    # seuls, pas besoin de le repasser à chaque fois).
+    app_store_connect_api_key(
       key_id: ENV["ASC_KEY_ID"],
       issuer_id: ENV["ASC_ISSUER_ID"],
       key_filepath: key_path,
@@ -24,16 +28,49 @@ platform :ios do
       build_number: ENV["GITHUB_RUN_NUMBER"] || "1"
     )
 
+    # La signature "Automatic" + -allowProvisioningUpdates (essayée dans les
+    # runs précédents) résolvait systématiquement vers un profil
+    # "Development" (qui a besoin d'appareils de test enregistrés) au lieu
+    # d'un profil de distribution App Store, même avec -configuration
+    # Release explicite. On passe donc à une signature manuelle et
+    # déterministe : certificat et profil de distribution créés
+    # explicitement, puis xcodebuild pointé dessus directement.
+    create_keychain(
+      name: "ci_build.keychain",
+      password: "ci_build_password",
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false
+    )
+    keychain_path = Actions.lane_context[SharedValues::KEYCHAIN_PATH]
+
+    cert(
+      keychain_path: keychain_path,
+      team_id: TEAM_ID
+    )
+
+    sigh(
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      force: true
+    )
+    profile_name = Actions.lane_context[SharedValues::SIGH_NAME]
+
     build_app(
       scheme: "App",
       project: "App.xcodeproj",
       configuration: "Release",
       export_method: "app-store",
-      xcargs: "-allowProvisioningUpdates -authenticationKeyPath \"#{key_path}\" -authenticationKeyID \"#{ENV['ASC_KEY_ID']}\" -authenticationKeyIssuerID \"#{ENV['ASC_ISSUER_ID']}\""
+      export_options: {
+        provisioningProfiles: {
+          APP_IDENTIFIER => profile_name
+        }
+      },
+      xcargs: "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=#{TEAM_ID} PROVISIONING_PROFILE_SPECIFIER=\"#{profile_name}\" CODE_SIGN_IDENTITY=\"Apple Distribution\""
     )
 
     upload_to_testflight(
-      api_key: api_key,
       skip_waiting_for_build_processing: true,
       distribute_external: false
     )
