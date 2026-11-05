@@ -1,0 +1,28 @@
+{
+  "name": "baraka-gp",
+  "version": "1.0.0",
+  "description": "Application de mise en relation entre particuliers pour l'envoi de colis via des voyageurs.",
+  "main": "firebase-messaging-sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:www": "mkdir -p www/icons && cp index.html manifest.json firebase-messaging-sw.js cgu.html confidentialite.html mentions-legales.html www/ && cp icons/*.png www/icons/",
+    "ios:sync": "npm run build:www && npx cap sync ios"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laminecamara251005-wq/baraka-gp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/laminecamara251005-wq/baraka-gp/issues"
+  },
+  "homepage": "https://github.com/laminecamara251005-wq/baraka-gp#readme",
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0"
+  }
+}

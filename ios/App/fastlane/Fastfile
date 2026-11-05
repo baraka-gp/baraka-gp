@@ -1,0 +1,102 @@
+require "shellwords"
+
+default_platform(:ios)
+
+APP_IDENTIFIER = "com.barakagp.app"
+TEAM_ID = "27Z7N8UZ7K"
+
+platform :ios do
+  desc "Compile l'app et l'envoie sur TestFlight (App Store Connect)"
+  lane :testflight do
+    # app_store_connect_api_key ne renvoie un :key_filepath exploitable que si
+    # on lui donne un chemin de fichier en entrée — avec :key_content, le
+    # hash renvoyé n'a qu'une clé :key (le contenu), pas de chemin. On écrit
+    # donc nous-mêmes la clé sur disque et on lui passe ce chemin.
+    key_path = File.expand_path("asc_api_key.p8")
+    File.write(key_path, ENV["ASC_KEY_CONTENT"])
+
+    # Partagé automatiquement avec cert/sigh/upload_to_testflight ci-dessous
+    # (ils lisent APP_STORE_CONNECT_API_KEY dans le contexte de la lane tout
+    # seuls, pas besoin de le repasser à chaque fois).
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: key_path,
+      in_house: false
+    )
+
+    increment_build_number(
+      xcodeproj: "App.xcodeproj",
+      build_number: ENV["GITHUB_RUN_NUMBER"] || "1"
+    )
+
+    # La signature "Automatic" + -allowProvisioningUpdates (essayée dans les
+    # runs précédents) résolvait systématiquement vers un profil
+    # "Development" (qui a besoin d'appareils de test enregistrés) au lieu
+    # d'un profil de distribution App Store, même avec -configuration
+    # Release explicite. On passe donc à une signature manuelle et
+    # déterministe : certificat et profil de distribution créés
+    # explicitement, puis xcodebuild pointé dessus directement.
+    create_keychain(
+      name: "ci_build.keychain",
+      password: "ci_build_password",
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false
+    )
+    # KEYCHAIN_PATH dans le contexte de la lane renvoie le chemin "brut" tel
+    # que passé à `security create-keychain` (ex. "~/Library/Keychains/
+    # ci_build.keychain"), mais macOS ajoute lui-même le suffixe "-db" au
+    # fichier réellement créé sur disque — confirmé dans les logs du run
+    # précédent. `cert` vérifie que le fichier existe à ce chemin exact, donc
+    # on reconstruit nous-mêmes le vrai chemin avec ce suffixe.
+    keychain_path = File.expand_path("~/Library/Keychains/ci_build.keychain-db")
+
+    # Chaque run CI repart d'un trousseau vierge (machine éphémère), donc cert
+    # ne trouve jamais localement un certificat existant et en crée un nouveau
+    # à chaque fois — jusqu'à atteindre la limite Apple du nombre de
+    # certificats de distribution actifs (run #18 : "reached the maximum
+    # number of available Distribution certificates"). On révoque les anciens
+    # avant d'en créer un nouveau, à chaque run, pour ne jamais buter dessus.
+    Spaceship::ConnectAPI::Certificate.all(filter: { certificateType: ["DISTRIBUTION", "IOS_DISTRIBUTION"].join(",") }).each(&:delete!)
+
+    cert(
+      keychain_path: keychain_path,
+      team_id: TEAM_ID
+    )
+
+    # Sans ça, codesign bloque indéfiniment (run #10, > 1h sans erreur ni
+    # succès) : macOS demande une confirmation GUI pour autoriser l'accès à
+    # la clé privée du certificat qu'on vient d'importer, mais cette boîte
+    # de dialogue est invisible en CI headless et n'est jamais validée.
+    # Cette commande autorise explicitement codesign (et les outils Apple) à
+    # utiliser la clé sans prompt.
+    sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ci_build_password #{keychain_path.shellescape}")
+
+    sigh(
+      app_identifier: APP_IDENTIFIER,
+      team_id: TEAM_ID,
+      force: true
+    )
+    profile_name = Actions.lane_context[SharedValues::SIGH_NAME]
+
+    build_app(
+      scheme: "App",
+      project: "App.xcodeproj",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          APP_IDENTIFIER => profile_name
+        }
+      },
+      xcargs: "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=#{TEAM_ID} PROVISIONING_PROFILE_SPECIFIER=\"#{profile_name}\" CODE_SIGN_IDENTITY=\"Apple Distribution\""
+    )
+
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      distribute_external: false
+    )
+  end
+end
