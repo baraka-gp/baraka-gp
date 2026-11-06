@@ -1610,7 +1610,17 @@ async function sendPhoneCode(){
     resetRecaptcha();
     if(e.message==='timeout') showToast("L'envoi du SMS prend trop de temps (vérification anti-robot bloquée ?), réessayez avec « Renvoyer le code »");
     else if(e.code==='auth/credential-already-in-use') showToast("Ce numéro est déjà vérifié sur un autre compte");
-    else showToast("Impossible d'envoyer le SMS : "+(e.code||e.message||'erreur inconnue'));
+    else{
+      // "auth/internal-error" seul ne dit rien d'exploitable — Firebase
+      // cache souvent le vrai motif dans e.message ou dans la réponse brute
+      // du serveur attachée à customData._tokenResponse / customData.serverResponse.
+      let detail=e.message||'';
+      try{
+        const raw=e.customData && (e.customData._tokenResponse || e.customData.serverResponse);
+        if(raw) detail+=' | '+JSON.stringify(raw).slice(0,300);
+      }catch(e2){}
+      showToast("Impossible d'envoyer le SMS : "+(e.code||'erreur inconnue')+(detail?(' — '+detail):''));
+    }
   }
 }
 async function resendPhoneCode(){
