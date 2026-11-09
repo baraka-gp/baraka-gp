@@ -1445,7 +1445,12 @@ async function completeLogin(uid, acc){
   initPushSupport();
   renderResults();
   startPolling();
-  if(justSignedUp){ justSignedUp=false; openPayoutSetupGate(); }
+  // La configuration du compte de paiement Stripe ne s'ouvre plus
+  // automatiquement juste après l'inscription (ça reste accessible à tout
+  // moment depuis « Mon solde » via le bouton "Configurer mon compte de
+  // paiement") : pas nécessaire tout de suite, et évite un enchaînement de
+  // webviews externes juste après la création du compte.
+  justSignedUp=false;
 }
 function openPayoutSetupGate(){
   document.getElementById('payoutSetupGate').classList.add('show');
