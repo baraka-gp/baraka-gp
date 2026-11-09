@@ -171,7 +171,7 @@ exports.createConnectOnboardingLink = onCall({ secrets: [stripeSecretKey], regio
   if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
   const name = request.data && request.data.name;
   const email = request.data && request.data.email;
-  const phoneE164 = request.auth.token.phone_number || undefined;
+  const phoneE164 = (request.data && request.data.phoneE164) || request.auth.token.phone_number || undefined;
 
   try {
     const stripe = getStripe();
@@ -200,7 +200,7 @@ exports.createAccountSession = onCall({ secrets: [stripeSecretKey], region: REGI
   if (!phone) throw new HttpsError('invalid-argument', 'Numéro manquant');
   const name = request.data && request.data.name;
   const email = request.data && request.data.email;
-  const phoneE164 = request.auth.token.phone_number || undefined;
+  const phoneE164 = (request.data && request.data.phoneE164) || request.auth.token.phone_number || undefined;
 
   try {
     const stripe = getStripe();

@@ -1431,7 +1431,7 @@ async function completeLogin(uid, acc){
     acc={...acc, name, phone};
     try{ await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000); }catch(e){}
   }
-  me={name:acc.name, phone:acc.phone, uid, avatar:acc.avatar||null};
+  me={name:acc.name, phone:acc.phone, phoneE164:acc.phoneE164||null, uid, avatar:acc.avatar||null};
   try{ localStorage.setItem('baraka-gp-me', JSON.stringify(me)); }catch(e){}
   document.getElementById('authGate').classList.remove('show');
   await loadAll();
@@ -1471,7 +1471,7 @@ async function mountPayoutOnboarding(){
       });
     }
     if(!window.StripeConnect) throw new Error('StripeConnect indisponible');
-    const result=await callCloudFn('createAccountSession', {phone: me.phone, name: me.name, email: me.email});
+    const result=await callCloudFn('createAccountSession', {phone: me.phone, name: me.name, email: me.email, phoneE164: me.phoneE164});
     const clientSecret=result.data.clientSecret;
     const cs=getComputedStyle(document.documentElement);
     const connectInstance=StripeConnect.init({
@@ -2927,7 +2927,7 @@ async function setupPayoutAccount(){
   showToast("Préparation de la configuration...");
   try{
     const origin=location.href.replace(/index\.html.*$/, '').replace(/\/$/, '');
-    const result=await callCloudFn('createConnectOnboardingLink', {phone: me.phone, name: me.name, email: me.email, origin});
+    const result=await callCloudFn('createConnectOnboardingLink', {phone: me.phone, name: me.name, email: me.email, phoneE164: me.phoneE164, origin});
     location.href=result.data.url;
   }catch(e){
     showToast("Impossible d'ouvrir la configuration : "+((e&&(e.message||e.code))||'erreur inconnue'));
