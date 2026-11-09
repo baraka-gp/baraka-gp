@@ -748,7 +748,7 @@
     </p>
   </div>
 </div>
-<div id="recaptcha-container"></div>
+<div id="recaptcha-container" style="position:fixed;top:140px;left:50%;transform:translateX(-50%);z-index:999;background:#fff;padding:4px;"></div>
 
 <!-- CONFIGURATION DU COMPTE DE PAIEMENT (proposée une fois après l'inscription) -->
 <div id="payoutSetupGate">
@@ -1598,13 +1598,18 @@ function resetRecaptcha(){
   if(old){
     const fresh=document.createElement('div');
     fresh.id='recaptcha-container';
+    fresh.style.cssText=old.style.cssText;
     old.parentNode.replaceChild(fresh, old);
   }
 }
 async function sendPhoneCode(){
   try{
-    if(!recaptchaVerifier){ recaptchaVerifier=new firebase.auth.RecaptchaVerifier('recaptcha-container', {size:'invisible'}); }
-    phoneConfirmationResult=await withTimeout(auth.currentUser.linkWithPhoneNumber(pendingSignupAcc.phoneE164, recaptchaVerifier), 20000);
+    // DIAGNOSTIC TEMPORAIRE : reCAPTCHA en mode visible (au lieu
+    // d'invisible) pour voir s'il s'affiche réellement dans la webview iOS
+    // ou s'il reste vide — "auth/internal-error" seul ne permettait pas de
+    // distinguer un widget qui ne charge pas du tout d'un autre problème.
+    if(!recaptchaVerifier){ recaptchaVerifier=new firebase.auth.RecaptchaVerifier('recaptcha-container', {size:'normal'}); }
+    phoneConfirmationResult=await withTimeout(auth.currentUser.linkWithPhoneNumber(pendingSignupAcc.phoneE164, recaptchaVerifier), 60000);
     showToast("Code envoyé par SMS !");
   }catch(e){
     resetRecaptcha();
