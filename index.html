@@ -271,40 +271,6 @@
 </head>
 <body>
 
-<!-- DIAGNOSTIC TEMPORAIRE (pas de Mac disponible pour inspecter la webview
-     iOS à distance) : panneau visible à l'écran qui capture les erreurs JS,
-     les rejets de promesse non gérés, et les échecs de chargement de
-     ressources (script/iframe), pour comprendre pourquoi le reCAPTCHA ne se
-     charge pas sur iOS. À retirer une fois le diagnostic terminé. -->
-<div id="debugLog" style="position:fixed;bottom:0;left:0;right:0;max-height:35vh;overflow-y:auto;background:rgba(0,0,0,.85);color:#0f0;font-family:monospace;font-size:10px;padding:6px;z-index:99999;white-space:pre-wrap;word-break:break-all;"></div>
-<script>
-(function(){
-  var logEl=document.getElementById('debugLog');
-  function append(tag, msg){
-    try{
-      var line=document.createElement('div');
-      line.textContent='['+tag+'] '+msg;
-      logEl.appendChild(line);
-      logEl.scrollTop=logEl.scrollHeight;
-    }catch(e){}
-  }
-  var origError=console.error;
-  console.error=function(){ try{ append('console.error', Array.prototype.slice.call(arguments).join(' ')); }catch(e){} origError.apply(console, arguments); };
-  window.addEventListener('error', function(e){
-    if(e.target && e.target!==window && (e.target.tagName==='SCRIPT'||e.target.tagName==='IFRAME'||e.target.tagName==='LINK'||e.target.tagName==='IMG')){
-      append('resource-error', (e.target.tagName)+' failed to load: '+(e.target.src||e.target.href||'?'));
-    }else{
-      append('js-error', (e.message||'?')+' @ '+(e.filename||'?')+':'+(e.lineno||'?'));
-    }
-  }, true);
-  window.addEventListener('unhandledrejection', function(e){
-    var r=e.reason;
-    append('unhandled-rejection', (r && (r.message||r.code)) || String(r));
-  });
-  append('debug', 'Panneau de diagnostic actif');
-})();
-</script>
-
 <!-- RECEIVE GATE (destinataire, sans compte) -->
 <div class="overlay" id="receiveGate" style="z-index:200;background:var(--bg);">
   <div class="modal" style="max-width:380px;">
@@ -782,7 +748,7 @@
     </p>
   </div>
 </div>
-<div id="recaptcha-container" style="position:fixed;top:140px;left:50%;transform:translateX(-50%);z-index:999;background:#fff;padding:4px;"></div>
+<div id="recaptcha-container"></div>
 
 <!-- CONFIGURATION DU COMPTE DE PAIEMENT (proposée une fois après l'inscription) -->
 <div id="payoutSetupGate">
@@ -1638,12 +1604,8 @@ function resetRecaptcha(){
 }
 async function sendPhoneCode(){
   try{
-    // DIAGNOSTIC TEMPORAIRE : reCAPTCHA en mode visible (au lieu
-    // d'invisible) pour voir s'il s'affiche réellement dans la webview iOS
-    // ou s'il reste vide — "auth/internal-error" seul ne permettait pas de
-    // distinguer un widget qui ne charge pas du tout d'un autre problème.
-    if(!recaptchaVerifier){ recaptchaVerifier=new firebase.auth.RecaptchaVerifier('recaptcha-container', {size:'normal'}); }
-    phoneConfirmationResult=await withTimeout(auth.currentUser.linkWithPhoneNumber(pendingSignupAcc.phoneE164, recaptchaVerifier), 60000);
+    if(!recaptchaVerifier){ recaptchaVerifier=new firebase.auth.RecaptchaVerifier('recaptcha-container', {size:'invisible'}); }
+    phoneConfirmationResult=await withTimeout(auth.currentUser.linkWithPhoneNumber(pendingSignupAcc.phoneE164, recaptchaVerifier), 20000);
     showToast("Code envoyé par SMS !");
   }catch(e){
     resetRecaptcha();
@@ -1769,15 +1731,17 @@ async function authSubmit(){
         // champ phoneE164, ou créé par un autre chemin) peut ne pas l'avoir :
         // sans ça, l'envoi du SMS plante avec un numéro undefined.
         if(!acc.phoneE164) acc.phoneE164=phoneE164;
-        if(acc.phoneVerified){
-          // Compte déjà vérifié lors d'une tentative précédente interrompue
-          // juste après (pas besoin de renvoyer un SMS).
-          authFlowInProgress=false;
-          justSignedUp=true;
-          await completeLogin(uid, acc);
-        }else{
-          await startPhoneVerification(uid, acc);
-        }
+        // La vérification par SMS est temporairement non-bloquante : elle
+        // échoue systématiquement sur iOS (reCAPTCHA ne charge pas dans la
+        // webview Capacitor, cause non diagnosticable sans accès à un Mac
+        // pour inspecter la webview). On laisse les gens s'inscrire et
+        // utiliser l'app sans attendre un correctif ou une solution plus
+        // adaptée (vérification côté serveur, ex. Twilio). Le code de
+        // vérification (startPhoneVerification, sendPhoneCode, etc.) reste
+        // en place pour être réactivé plus tard.
+        authFlowInProgress=false;
+        justSignedUp=true;
+        await completeLogin(uid, acc);
       }catch(e){
         authFlowInProgress=false;
         showToast("Une erreur est survenue, réessayez");
@@ -1846,13 +1810,8 @@ auth.onAuthStateChanged(async (user)=>{
       try{ await auth.signOut(); }catch(e){}
       return;
     }
-    if(acc.phoneE164 && !acc.phoneVerified){
-      // Inscription commencée mais vérification SMS jamais terminée (appli
-      // fermée entre-temps) : on la reprend avant de laisser entrer.
-      authFlowInProgress=true;
-      await startPhoneVerification(user.uid, acc);
-      return;
-    }
+    // Vérification SMS temporairement non-bloquante, voir le commentaire
+    // sur authSubmit() : on ne reprend plus la vérification ici non plus.
     await completeLogin(user.uid, acc);
   }else{
     if(me && !explicitSignOutRequested){
