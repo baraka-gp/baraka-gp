@@ -271,6 +271,40 @@
 </head>
 <body>
 
+<!-- DIAGNOSTIC TEMPORAIRE (pas de Mac disponible pour inspecter la webview
+     iOS à distance) : panneau visible à l'écran qui capture les erreurs JS,
+     les rejets de promesse non gérés, et les échecs de chargement de
+     ressources (script/iframe), pour comprendre pourquoi le reCAPTCHA ne se
+     charge pas sur iOS. À retirer une fois le diagnostic terminé. -->
+<div id="debugLog" style="position:fixed;bottom:0;left:0;right:0;max-height:35vh;overflow-y:auto;background:rgba(0,0,0,.85);color:#0f0;font-family:monospace;font-size:10px;padding:6px;z-index:99999;white-space:pre-wrap;word-break:break-all;"></div>
+<script>
+(function(){
+  var logEl=document.getElementById('debugLog');
+  function append(tag, msg){
+    try{
+      var line=document.createElement('div');
+      line.textContent='['+tag+'] '+msg;
+      logEl.appendChild(line);
+      logEl.scrollTop=logEl.scrollHeight;
+    }catch(e){}
+  }
+  var origError=console.error;
+  console.error=function(){ try{ append('console.error', Array.prototype.slice.call(arguments).join(' ')); }catch(e){} origError.apply(console, arguments); };
+  window.addEventListener('error', function(e){
+    if(e.target && e.target!==window && (e.target.tagName==='SCRIPT'||e.target.tagName==='IFRAME'||e.target.tagName==='LINK'||e.target.tagName==='IMG')){
+      append('resource-error', (e.target.tagName)+' failed to load: '+(e.target.src||e.target.href||'?'));
+    }else{
+      append('js-error', (e.message||'?')+' @ '+(e.filename||'?')+':'+(e.lineno||'?'));
+    }
+  }, true);
+  window.addEventListener('unhandledrejection', function(e){
+    var r=e.reason;
+    append('unhandled-rejection', (r && (r.message||r.code)) || String(r));
+  });
+  append('debug', 'Panneau de diagnostic actif');
+})();
+</script>
+
 <!-- RECEIVE GATE (destinataire, sans compte) -->
 <div class="overlay" id="receiveGate" style="z-index:200;background:var(--bg);">
   <div class="modal" style="max-width:380px;">
