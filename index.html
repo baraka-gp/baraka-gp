@@ -1821,7 +1821,11 @@ function renderBalancePanel(){
   let html = `<h2 style="display:flex;align-items:center;gap:9px;"><svg class="icon" viewBox="0 0 24 24" style="width:22px;height:22px;"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M3 9h18"/><circle cx="16" cy="14" r="1"/></svg>${t('balTitle','Mon solde')}</h2>
     <div class="sub">${t('balSubtitle','Ceci récapitule ce que vous devriez recevoir ou avez payé selon vos commandes.')}</div>`;
 
-  if(gpOrders.length>0){
+  {
+    // Le statut/bouton de configuration du paiement doit rester visible même
+    // sans aucune commande en tant que voyageur : sinon, personne ne peut
+    // configurer son compte avant d'avoir accepté sa toute première
+    // commande (poule et œuf).
     const myProfile=profiles[myPhone]||{};
     const payoutStatus=myProfile.stripeOnboarded
       ? `<div class="hint" style="margin-top:6px;color:var(--accent);">${ICON_CHECK}${t('balPayoutConfigured','Compte de paiement configuré, vous pouvez recevoir vos versements.')}</div>`
@@ -1829,14 +1833,17 @@ function renderBalancePanel(){
          <button class="btn gold sm" onclick="openPayoutSetupGate()">🏦 ${t('btnConfigurePayout','Configurer mon compte de paiement')}</button>`;
     html += `
     <h3 style="margin-top:20px;font-family:'Fraunces',serif;">✈️ ${t('balAsTraveler','En tant que voyageur')}</h3>
-    ${payoutStatus}
-    <div class="price-recap">
-      <div class="price-recap-row"><span>🟢 ${t('balReceived','Reçu')}</span><b>${gpReceivedTotal.toFixed(2)}€</b></div>
-      ${orderList(gpReceived,'priceNet')}
-      <div class="price-recap-row" style="margin-top:10px;"><span>🟡 ${t('balUpcoming','À venir (commande en cours)')}</span><b>${gpUpcomingTotal.toFixed(2)}€</b></div>
-      ${orderList(gpUpcoming,'priceNet')}
-      ${gpCancelled.length>0 ? `<div class="price-recap-row sub" style="margin-top:10px;color:var(--green-pale-ink);"><span>🔴 ${t('balCancelledRefused','Annulées / refusées')}</span><span>${gpCancelled.length}</span></div>` : ''}
-    </div>`;
+    ${payoutStatus}`;
+    if(gpOrders.length>0){
+      html += `
+      <div class="price-recap">
+        <div class="price-recap-row"><span>🟢 ${t('balReceived','Reçu')}</span><b>${gpReceivedTotal.toFixed(2)}€</b></div>
+        ${orderList(gpReceived,'priceNet')}
+        <div class="price-recap-row" style="margin-top:10px;"><span>🟡 ${t('balUpcoming','À venir (commande en cours)')}</span><b>${gpUpcomingTotal.toFixed(2)}€</b></div>
+        ${orderList(gpUpcoming,'priceNet')}
+        ${gpCancelled.length>0 ? `<div class="price-recap-row sub" style="margin-top:10px;color:var(--green-pale-ink);"><span>🔴 ${t('balCancelledRefused','Annulées / refusées')}</span><span>${gpCancelled.length}</span></div>` : ''}
+      </div>`;
+    }
   }
 
   if(clientOrders.length>0){
