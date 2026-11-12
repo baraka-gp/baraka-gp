@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Baraka GP — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF6EF; --panel:#FFFFFF; --ink:#1F2B24; --ink-soft:#5B6660;
+    --green:#1E6F5C; --green-dark:#154F42; --green-pale:#E7F0EC;
+    --gold:#C9922F; --gold-soft:#F3E6C8; --line:#E6DFCC; --radius:14px;
+    --red:#B4453E; --red-soft:#F3E1DF; --input-bg:#FCFAF5;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#121A16; --panel:#1C2620; --ink:#EDEFEC; --ink-soft:#9BA69E;
+      --line:#33403A; --input-bg:#212B25; color-scheme:dark;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
+  .wrap{max-width:720px;margin:0 auto;padding:0 20px 80px;}
+
+  header{padding:22px 20px;text-align:center;background:linear-gradient(180deg,var(--green) 0%,var(--green-dark) 100%);display:flex;align-items:center;justify-content:space-between;}
+  header h1{font-size:19px;color:#F5EFDD;}
+  header button{background:rgba(255,255,255,.14);border:none;color:#F5EFDD;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin:20px 0;}
+  .panel h2{font-size:19px;margin-bottom:16px;}
+  label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:13px 0 6px;text-transform:uppercase;letter-spacing:.4px;}
+  label:first-of-type{margin-top:0;}
+  input, textarea{width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid var(--line);background:var(--input-bg);font-family:'Inter',sans-serif;font-size:16px;color:var(--ink);}
+  input:focus, textarea:focus{outline:none;border-color:var(--green);}
+  .password-field{position:relative;}
+  .password-field input{padding-right:44px;}
+  .password-toggle{position:absolute;right:2px;top:0;width:auto;height:100%;padding:0 12px;margin:0;background:none;border:none;font-size:17px;cursor:pointer;line-height:1;}
+  .btn{margin-top:18px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif;}
+  .btn:hover{background:var(--green-dark);}
+  .btn.sm{margin-top:8px;padding:9px;font-size:13px;}
+
+  .admin-subtab{display:flex;gap:5px;margin:20px 0 14px;flex-wrap:wrap;}
+  .admin-subtab div{flex:1;min-width:70px;text-align:center;padding:10px 3px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:var(--panel);border:1px solid var(--line);color:var(--ink-soft);}
+  .admin-subtab div.active{background:var(--green);color:#fff;border-color:var(--green);}
+  .subtab-badge{background:var(--red);color:#fff;font-size:10.5px;font-weight:700;min-width:16px;height:16px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:4px;vertical-align:middle;}
+
+  .admin-list{margin-top:6px;}
+  .admin-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;text-align:left;}
+  .admin-card img{max-width:100%;border-radius:8px;margin:8px 0;}
+  .admin-card .name-check{font-size:12.5px;color:var(--ink-soft);margin:4px 0 8px;}
+  .admin-actions{display:flex;gap:8px;margin-top:10px;}
+  .admin-actions button{flex:1;padding:9px;border-radius:8px;border:none;font-weight:600;font-size:12.5px;cursor:pointer;}
+  .btn-approve{background:var(--green);color:#fff;}
+  .btn-reject{background:var(--red-soft);color:var(--red);}
+  .type-pill{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;margin-bottom:7px;margin-right:5px;letter-spacing:.3px;}
+  .type-pill.gp{background:var(--green-pale);color:var(--green-dark);}
+  .type-pill.colis{background:var(--gold-soft);color:#8A611D;}
+  .type-pill.profile{background:#E4E9F5;color:#33447A;}
+  .thread-row{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;cursor:pointer;background:var(--panel);}
+  .unread{background:var(--gold);color:#fff;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;}
+
+  .chat-thread{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;padding:4px 2px;margin:10px 0;}
+  .bubble{max-width:78%;padding:8px 12px;border-radius:13px;font-size:13.5px;line-height:1.4;}
+  .bubble.mine{align-self:flex-end;background:var(--green);color:#fff;border-bottom-right-radius:4px;}
+  .bubble.theirs{align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-bottom-left-radius:4px;}
+  .bubble .time{display:block;font-size:10px;opacity:.65;margin-top:2px;}
+  .chat-input{display:flex;gap:7px;margin-top:6px;}
+  .chat-input textarea{min-height:40px;resize:vertical;} .chat-input button{width:auto;margin:0;padding:0 16px;flex-shrink:0;}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green-dark);color:#fff;padding:12px 20px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:90vw;text-align:center;}
+  .toast.show{opacity:1;transform:translate(-50%,-6px);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Baraka GP — Admin</h1>
+  <button id="signOutBtn" style="display:none;" onclick="adminSignOut()">Se déconnecter</button>
+</header>
+
+<div class="wrap">
+  <div id="loginView" class="panel">
+    <h2>Connexion</h2>
+    <label>Email</label><input type="email" id="adminEmail" placeholder="vous@example.com" autocomplete="username">
+    <label>Mot de passe</label>
+    <div class="password-field">
+      <input type="password" id="adminPassword" placeholder="Mot de passe" autocomplete="current-password">
+      <button type="button" class="password-toggle" onclick="togglePasswordVisibility('adminPassword', this)">👁</button>
+    </div>
+    <button class="btn" onclick="adminSignIn()">Se connecter</button>
+    <p style="margin-top:10px;font-size:13px;">
+      <a href="javascript:void(0)" onclick="adminForgotPassword()" style="color:var(--ink-soft);text-decoration:underline;">Mot de passe oublié ?</a>
+    </p>
+    <div id="notAdminBox" style="display:none;margin-top:16px;background:var(--gold-soft);border-radius:12px;padding:14px 15px;">
+      <b style="color:#7A5619;">Ce compte n'est pas reconnu comme admin.</b>
+      <div style="font-size:12.5px;color:#7A5619;margin-top:6px;">Copiez cet UID exact et créez un document avec cet ID dans la collection « admins » de Firestore :</div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input type="text" readonly value="" id="notAdminUidInput" style="background:var(--panel);font-size:12px;">
+        <button class="btn gold" style="width:auto;margin:0;padding:0 14px;flex-shrink:0;" onclick="copyNotAdminUid()">Copier</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="panelView" style="display:none;">
+    <div class="admin-subtab">
+      <div class="active" id="subtabProfiles" onclick="switchAdminSub('profiles')">Identités <span class="subtab-badge" id="badgeProfiles" style="display:none;">0</span></div>
+      <div id="subtabOrders" onclick="switchAdminSub('orders')">Commandes <span class="subtab-badge" id="badgeOrders" style="display:none;">0</span></div>
+      <div id="subtabListings" onclick="switchAdminSub('listings')">Annonces <span class="subtab-badge" id="badgeListings" style="display:none;">0</span></div>
+      <div id="subtabAlerts" onclick="switchAdminSub('alerts')">Alertes <span class="subtab-badge" id="badgeAlerts" style="display:none;">0</span></div>
+      <div id="subtabMessages" onclick="switchAdminSub('messages')">Support <span class="subtab-badge" id="badgeMessages" style="display:none;">0</span></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="btn ghost sm" style="width:auto;margin:0;" onclick="exportOrdersCsv()">⬇️ Export commandes (CSV)</button>
+      <button class="btn ghost sm" style="width:auto;margin:0;" onclick="exportProfilesCsv()">⬇️ Export profils (CSV)</button>
+    </div>
+    <div class="admin-list" id="adminList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-functions-compat.js"></script>
+<script>
+// Doit pointer vers le MÊME projet Firebase que index.html, pour lire/écrire les mêmes données.
+const firebaseConfig = {
+  apiKey: "AIzaSyD67E8efC3xhu2Uavp3htKhDnOjZDkRz94",
+  authDomain: "baraka-gp.firebaseapp.com",
+  projectId: "baraka-gp",
+  storageBucket: "baraka-gp.firebasestorage.app",
+  messagingSenderId: "708826047607",
+  appId: "1:708826047607:web:0b1c85defdc1a157f5d272"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const cloudFunctions = firebase.app().functions('europe-west1');
+
+let listings=[], profiles={}, profilesPrivate={}, alerts=[], messages={}, orders=[], blockedPhones={};
+let adminSub='profiles', adminOpenThreadPhone=null;
+let pollTimer=null;
+
+let chatFocused=false;
+function isProtectedField(el){
+  if(!el) return false;
+  if(el.tagName!=='INPUT' && el.tagName!=='TEXTAREA') return false;
+  const adminList=document.getElementById('adminList');
+  return !!(adminList && adminList.contains(el));
+}
+document.addEventListener('focusin', e=>{ if(isProtectedField(e.target)) chatFocused=true; });
+document.addEventListener('focusout', e=>{ if(isProtectedField(e.target)) chatFocused=false; });
+function isTypingInChat(){ return chatFocused; }
+
+function todayStr(){ const d=new Date(); return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function downloadCsv(filename, rows){
+  const csv=rows.map(row=>row.map(cell=>'"'+String(cell==null?'':cell).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function exportOrdersCsv(){
+  const header=['ID','Client','Téléphone client','GP','Téléphone GP','Départ','Arrivée','Date trajet','Kg','Prix total (€)','Commission (€)','Statut','Note admin'];
+  const rows=[header, ...orders.map(o=>[o.id,o.clientName,o.clientPhone,o.gpName,o.gpPhone,o.from,o.to,o.tripDate,o.kg,o.priceTotal,o.commission,statusLabel(o.status),o.adminNote||''])];
+  downloadCsv('commandes_'+todayStr()+'.csv', rows);
+}
+function exportProfilesCsv(){
+  const header=['Téléphone','Nom','Vérifié','Bloqué','Note voyageur','Note client','Créé le'];
+  const rows=[header, ...Object.entries(profiles).map(([phone,p])=>[
+    p.phone||phone, p.name, p.verified?'Oui':'Non', blockedPhones[phone]?'Oui':'Non',
+    p.ratingCount?(p.ratingSum/p.ratingCount).toFixed(1)+'/5 ('+p.ratingCount+')':'',
+    p.clientRatingCount?(p.clientRatingSum/p.clientRatingCount).toFixed(1)+'/5 ('+p.clientRatingCount+')':'',
+    p.createdAt?new Date(p.createdAt).toLocaleDateString('fr-FR'):''
+  ])];
+  downloadCsv('profils_'+todayStr()+'.csv', rows);
+}
+function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escJs(s){ return esc(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")); }
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')), ms))
+  ]);
+}
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'; setTimeout(()=>t.classList.remove('show'),3000); }
+function togglePasswordVisibility(id, btn){
+  const input=document.getElementById(id);
+  if(input.type==='password'){ input.type='text'; btn.textContent='🙈'; }
+  else{ input.type='password'; btn.textContent='👁'; }
+}
+function copyNotAdminUid(){
+  const input=document.getElementById('notAdminUidInput');
+  input.select();
+  try{ document.execCommand('copy'); showToast("UID copié !"); }catch(e){ showToast("Copiez l'UID manuellement"); }
+}
+function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
+function fmtDateTime(dt){ if(!dt) return "—"; return new Date(dt).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(dt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function fmtTime(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function statusLabel(s){
+  return {pending:'⏳ En attente',accepted:'✅ Acceptée',paid:'💳 Payée',picked_up:'🧳 Prise en charge',delivered:'📦 Remise confirmée',completed:'🎉 Terminée',refused:'❌ Refusée',cancelled_gp:'❌ Annulée par le GP',cancelled_client:'❌ Annulée',expired:'⌛ Expirée'}[s]||s;
+}
+function matchingAlerts(listing){
+  return alerts.filter(a=>{
+    if(a.notified) return false;
+    if(a.country && a.country!==listing.country) return false;
+    if(a.from && !listing.from.toLowerCase().includes(a.from.toLowerCase())) return false;
+    if(a.to && !listing.to.toLowerCase().includes(a.to.toLowerCase())) return false;
+    return true;
+  });
+}
+function countHabits(phone,country,type){
+  return listings.filter(l=>l.type===type && cleanPhone(l.phone)===cleanPhone(phone) && l.country===country).length;
+}
+
+// ---- STORAGE (Firestore, un document par enregistrement — même base que index.html) ----
+async function fetchCollectionArray(name){
+  const snap=await withTimeout(db.collection(name).get(), 8000);
+  return snap.docs.map(d=>d.data());
+}
+async function fetchCollectionMap(name){
+  const snap=await withTimeout(db.collection(name).get(), 8000);
+  const map={};
+  snap.forEach(d=>{ map[d.id]=d.data(); });
+  return map;
+}
+async function loadAll(){
+  try{ listings=await fetchCollectionArray('listings'); }catch(e){ listings=[]; }
+  try{ profiles=await fetchCollectionMap('profiles'); }catch(e){ profiles={}; }
+  try{ profilesPrivate=await fetchCollectionMap('profilesPrivate'); }catch(e){ profilesPrivate={}; }
+  try{ alerts=await fetchCollectionArray('alerts'); }catch(e){ alerts=[]; }
+  try{ messages=await fetchCollectionMap('messages'); }catch(e){ messages={}; }
+  try{ orders=await fetchCollectionArray('orders'); }catch(e){ orders=[]; }
+  try{ blockedPhones=await fetchCollectionMap('blockedPhones'); }catch(e){ blockedPhones={}; }
+  updateAdminNotifBadges();
+}
+function setBadge(id,count){
+  const el=document.getElementById(id);
+  if(!el) return;
+  if(count>0){ el.textContent=count>9?'9+':count; el.style.display='inline-flex'; }
+  else{ el.style.display='none'; }
+}
+function updateAdminNotifBadges(){
+  const profilesCount=Object.values(profiles).filter(p=>!p.verified).length;
+  const listingsCount=listings.filter(l=>l.type!=='gp' && !l.verified).length;
+  const alertsCount=alerts.filter(a=>!a.notified).length;
+  const messagesCount=Object.values(messages).filter(th=>th.unreadAdmin).length;
+  const ordersCount=orders.filter(o=>(['cancelled_gp','cancelled_client'].includes(o.status) || o.transferError || o.refundError) && o.adminSeen!==true).length;
+  setBadge('badgeProfiles', profilesCount);
+  setBadge('badgeListings', listingsCount);
+  setBadge('badgeAlerts', alertsCount);
+  setBadge('badgeMessages', messagesCount);
+  setBadge('badgeOrders', ordersCount);
+}
+async function saveListings(){ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }
+async function saveProfiles(){ const batch=db.batch(); Object.keys(profiles).forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }
+async function saveAlerts(){ const batch=db.batch(); alerts.forEach(a=>batch.set(db.collection('alerts').doc(String(a.id)), a)); await batch.commit(); }
+async function saveMessages(){ const batch=db.batch(); Object.keys(messages).forEach(k=>batch.set(db.collection('messages').doc(k), messages[k])); await batch.commit(); }
+async function saveOrders(){ const batch=db.batch(); orders.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }
+function adminWriteError(e){ showToast("Échec : "+((e&&e.code==='permission-denied')?"droits admin manquants (vérifiez la collection « admins »)":"connexion instable, réessayez")); }
+
+function ensureThread(phone,name){
+  const key=cleanPhone(phone);
+  if(!messages[key]) messages[key]={name:name||'Utilisateur',unreadUser:false,unreadAdmin:false,thread:[]};
+  else if(name) messages[key].name=name;
+  return key;
+}
+async function pushMessage(phone,from,text){
+  const key=ensureThread(phone);
+  messages[key].thread.push({from,text,ts:Date.now()});
+  if(from==='admin') messages[key].unreadUser=true;
+  if(from==='user') messages[key].unreadAdmin=true;
+  await saveMessages();
+}
+
+// ---- AUTH ----
+function adminAuthErrorMessage(e){
+  if(e && e.message==='timeout') return "Connexion trop lente, réessayez";
+  const code=(e && e.code)||'';
+  if(code.includes('too-many-requests')) return "Trop de tentatives, patientez quelques minutes avant de réessayer";
+  if(code.includes('network-request-failed')) return "Pas de connexion internet, vérifiez votre réseau";
+  if(code.includes('user-disabled')) return "Ce compte a été désactivé";
+  if(code.includes('user-not-found')||code.includes('wrong-password')||code.includes('invalid-credential')||code.includes('invalid-email')) return "Email ou mot de passe incorrect";
+  return "Une erreur est survenue, réessayez";
+}
+async function adminSignIn(){
+  const email=document.getElementById('adminEmail').value.trim();
+  const password=document.getElementById('adminPassword').value;
+  if(!email||!password){ showToast("Merci de remplir l'email et le mot de passe"); return; }
+  try{ await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000); }
+  catch(e){ showToast(adminAuthErrorMessage(e)); }
+}
+async function adminForgotPassword(){
+  const email=document.getElementById('adminEmail').value.trim();
+  if(!email){ showToast("Indiquez votre email ci-dessus, puis retapez sur ce lien"); return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    showToast("Email envoyé ! Vérifiez votre boîte de réception 📩");
+  }catch(e){
+    const code=(e && e.code)||'';
+    if(code.includes('user-not-found')) showToast("Aucun compte n'existe avec cet email");
+    else showToast("Une erreur est survenue, réessayez");
+  }
+}
+async function adminSignOut(){
+  stopPolling();
+  try{ await auth.signOut(); }catch(e){}
+}
+const OWNER_UID='pn4WsdLN1gWrwIwMewMPumiRstj1';
+auth.onAuthStateChanged(async (user)=>{
+  if(user){
+    let isAdmin=(user.uid===OWNER_UID);
+    if(!isAdmin){
+      try{
+        const snap=await withTimeout(db.collection('admins').doc(user.uid).get(), 8000);
+        isAdmin=snap.exists;
+      }catch(e){}
+    }
+    if(!isAdmin){
+      stopPolling();
+      document.getElementById('loginView').style.display='block';
+      document.getElementById('panelView').style.display='none';
+      document.getElementById('signOutBtn').style.display='inline-block';
+      document.getElementById('notAdminUidInput').value=user.uid;
+      document.getElementById('notAdminBox').style.display='block';
+      showToast("Ce compte n'est pas reconnu comme admin.");
+      try{ await auth.signOut(); }catch(e){}
+      return;
+    }
+    document.getElementById('notAdminBox').style.display='none';
+  }
+  document.getElementById('loginView').style.display = user ? 'none' : 'block';
+  document.getElementById('panelView').style.display = user ? 'block' : 'none';
+  document.getElementById('signOutBtn').style.display = user ? 'inline-block' : 'none';
+  if(user){
+    await loadAll();
+    switchAdminSub('profiles');
+    startPolling();
+  }else{
+    stopPolling();
+  }
+});
+function startPolling(){
+  stopPolling();
+  pollTimer=setInterval(async ()=>{
+    await loadAll();
+    if(isTypingInChat()) return;
+    if(adminSub==='profiles') renderAdminProfiles();
+    else if(adminSub==='orders') renderAdminOrders();
+    else if(adminSub==='listings') renderAdminListings();
+    else if(adminSub==='alerts') renderAdminAlerts();
+    else renderAdminMessages();
+  }, 4000);
+}
+function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
+
+// ---- PANEL ----
+function switchAdminSub(sub){
+  adminSub=sub; adminOpenThreadPhone=null;
+  document.getElementById('subtabProfiles').classList.toggle('active',sub==='profiles');
+  document.getElementById('subtabOrders').classList.toggle('active',sub==='orders');
+  document.getElementById('subtabListings').classList.toggle('active',sub==='listings');
+  document.getElementById('subtabAlerts').classList.toggle('active',sub==='alerts');
+  document.getElementById('subtabMessages').classList.toggle('active',sub==='messages');
+  if(sub==='profiles') renderAdminProfiles();
+  else if(sub==='orders') renderAdminOrders();
+  else if(sub==='listings') renderAdminListings();
+  else if(sub==='alerts') renderAdminAlerts();
+  else renderAdminMessages();
+}
+function renderAdminAlerts(){
+  updateAdminNotifBadges();
+  const list=document.getElementById('adminList');
+  if(alerts.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune alerte.</p>'; return; }
+  list.innerHTML=alerts.slice().reverse().map(a=>`
+    <div class="admin-card">
+      <span class="type-pill ${a.notified?'gp':'colis'}">${a.notified?'✅ Déjà notifié':'🔔 En attente'}</span><br>
+      <b>${esc(a.name)}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(a.phone)}</span>
+      <div class="name-check">Trajet souhaité</div>
+      <p style="font-size:13.5px;margin:0;">${esc(a.from) || '(ville de départ non précisée)'} → ${esc(a.to) || '(ville d\'arrivée non précisée)'}${a.country ? ' · ' + esc(a.country) : ''}</p>
+      <div class="name-check">Demande créée le ${fmtTime(a.createdAt)}</div>
+      <div class="admin-actions">
+        <button class="btn-reject" onclick="removeAlert('${a.id}')">Supprimer l'alerte</button>
+      </div>
+    </div>`).join('');
+}
+async function removeAlert(id){
+  try{
+    await db.collection('alerts').doc(id).delete();
+    alerts=alerts.filter(x=>x.id!==id);
+    renderAdminAlerts(); showToast("Supprimé");
+  }catch(e){ adminWriteError(e); }
+}
+function renderAdminProfiles(){
+  updateAdminNotifBadges();
+  const list=document.getElementById('adminList');
+  const entries=Object.entries(profiles);
+  if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucun profil.</p>'; return; }
+  list.innerHTML=entries.slice().reverse().map(([phone,p])=>{
+    const gpReviews=orders.filter(o=>cleanPhone(o.gpPhone)===phone && o.rating);
+    const clientReviews=orders.filter(o=>cleanPhone(o.clientPhone)===phone && o.clientRating);
+    return `
+    <div class="admin-card">
+      <span class="type-pill profile">👤 IDENTITÉ</span>
+      ${blockedPhones[phone]?'<span class="type-pill" style="background:var(--red-soft);color:var(--red);">⛔ Bloqué</span>':''}<br>
+      <b>${esc(p.name)}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(p.phone)}</span>
+      ${p.ratingCount?`<div style="font-size:12px;margin-top:4px;">⭐ Comme voyageur : ${(p.ratingSum/p.ratingCount).toFixed(1)}/5 (${p.ratingCount} avis)
+        <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="resetGpRating('${phone}')">Réinitialiser la note</button></div>`:''}
+      ${p.clientRatingCount?`<div style="font-size:12px;margin-top:2px;">⭐ Comme client : ${(p.clientRatingSum/p.clientRatingCount).toFixed(1)}/5 (${p.clientRatingCount} avis)
+        <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="resetClientRating('${phone}')">Réinitialiser la note</button></div>`:''}
+      ${gpReviews.length>0 ? `
+        <div class="name-check">Avis reçus comme voyageur</div>
+        ${gpReviews.map(o=>`
+          <p style="font-size:13px;margin:4px 0;">${'⭐'.repeat(o.rating)}${o.ratingComment?' — "'+esc(o.ratingComment)+'"':''}
+            <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="deleteOrderRating('${o.id}')">Supprimer cet avis</button>
+          </p>`).join('')}
+      ` : ''}
+      ${clientReviews.length>0 ? `
+        <div class="name-check">Avis reçus comme client</div>
+        ${clientReviews.map(o=>`
+          <p style="font-size:13px;margin:4px 0;">${'⭐'.repeat(o.clientRating)}${o.clientRatingComment?' — "'+esc(o.clientRatingComment)+'"':''}
+            <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="deleteOrderClientRating('${o.id}')">Supprimer cet avis</button>
+          </p>`).join('')}
+      ` : ''}
+      ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
+      <div class="name-check">Pièce d'identité${(profilesPrivate[phone]||{}).idType ? ` — ${esc(profilesPrivate[phone].idType)}` : ''}</div>
+      ${(()=>{ const idPhoto=(profilesPrivate[phone]||{}).idPhoto; return idPhoto&&idPhoto.type==='image' ? `<img src="${idPhoto.data}">` : `<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(idPhoto?idPhoto.name:'non fourni')}</p>`; })()}
+      <div class="admin-actions">
+        <button class="btn-approve" onclick="setProfileVerified('${phone}',true)">${p.verified?'✅ Vérifié':'Approuver'}</button>
+        <button class="btn-reject" onclick="toggleBlockPhone('${phone}')">${blockedPhones[phone]?'Débloquer':'Bloquer ce numéro'}</button>
+        <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer le profil</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function toggleBlockPhone(phone){
+  const key=cleanPhone(phone);
+  const wasBlocked=!!blockedPhones[key];
+  try{
+    if(wasBlocked){
+      await db.collection('blockedPhones').doc(key).delete();
+      delete blockedPhones[key];
+      showToast("Numéro débloqué");
+    }else{
+      const entry={blockedAt:Date.now()};
+      await db.collection('blockedPhones').doc(key).set(entry);
+      blockedPhones[key]=entry;
+      showToast("Numéro bloqué");
+    }
+    renderAdminProfiles();
+  }catch(e){ adminWriteError(e); }
+}
+function renderAdminOrders(){
+  updateAdminNotifBadges();
+  const list=document.getElementById('adminList');
+  if(orders.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune commande.</p>'; return; }
+  list.innerHTML=orders.slice().reverse().map(o=>{
+    const needsReview = (['cancelled_gp','cancelled_client'].includes(o.status) || o.transferError || o.refundError) && o.adminSeen!==true;
+    return `
+    <div class="admin-card">
+      <span class="type-pill gp">${statusLabel(o.status)}</span>
+      <span class="type-pill colis">${o.packageType==='valise' ? '🧳 Valise entière' : '📦 Colis'}</span>
+      ${needsReview?'<span class="type-pill" style="background:var(--red-soft);color:var(--red);">🚨 À traiter</span>':''}<br>
+      <b>${esc(o.clientName)}</b> → <b>${esc(o.gpName)}</b> · ${esc(o.from)} → ${esc(o.to)}<br>
+      <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)}${o.arrivalDateTime?' · arrivée '+fmtDateTime(o.arrivalDateTime):''} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
+      ${o.weightProof&&o.weightProof.type==='image'?`<div class="name-check">Photo sur balance</div><img src="${o.weightProof.data}">`:''}
+      ${o.rating ? `
+        <div class="name-check">Note laissée sur le voyageur</div>
+        <p style="font-size:13px;margin:0;">${'⭐'.repeat(o.rating)}${o.ratingComment?' — "'+esc(o.ratingComment)+'"':''}</p>
+        <div class="admin-actions"><button class="btn-reject" onclick="deleteOrderRating('${o.id}')">Supprimer cette note</button></div>
+      ` : ''}
+      ${o.clientRating ? `
+        <div class="name-check">Note laissée sur le client</div>
+        <p style="font-size:13px;margin:0;">${'⭐'.repeat(o.clientRating)}${o.clientRatingComment?' — "'+esc(o.clientRatingComment)+'"':''}</p>
+        <div class="admin-actions"><button class="btn-reject" onclick="deleteOrderClientRating('${o.id}')">Supprimer cette note</button></div>
+      ` : ''}
+      <div class="name-check">Note interne (visible seulement par l'admin)</div>
+      <textarea id="adminNote_${o.id}" placeholder="Ex. Client recontacté le..." style="min-height:50px;">${esc(o.adminNote||'')}</textarea>
+      ${o.refunded ? `<div class="name-check" style="color:var(--green-dark);">✅ Remboursé le ${fmtDateTime(o.refundedAt)}</div>` : ''}
+      ${o.refundError ? `<div class="name-check" style="color:var(--red);">⚠️ Échec du remboursement : ${esc(o.refundError)}</div>` : ''}
+      ${o.transferred ? `<div class="name-check" style="color:var(--green-dark);">✅ Voyageur payé le ${fmtDateTime(o.transferredAt)}</div>` : ''}
+      ${o.transferError ? `<div class="name-check" style="color:var(--red);">⚠️ Échec du virement au voyageur : ${esc(o.transferError)}</div>` : ''}
+      <div class="admin-actions">
+        <button class="btn-approve" onclick="saveOrderNote('${o.id}')">Enregistrer la note</button>
+        ${needsReview ? `<button class="btn-approve" onclick="markOrderSeen('${o.id}')">Marquer comme traité</button>` : ''}
+        ${['refused','cancelled_gp','cancelled_client','expired'].includes(o.status) ? '' : `<button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>`}
+        ${(o.stripePaymentIntentId && !o.refunded) ? `<button class="btn-reject" onclick="refundOrder('${o.id}')" id="refundBtn_${o.id}">💳 Rembourser le client</button>` : ''}
+        ${(o.status==='completed' && !o.transferred) ? `<button class="btn-approve" onclick="retryTransfer('${o.id}')" id="retryBtn_${o.id}">🔁 Réessayer le virement</button>` : ''}
+        <button class="btn-reject" onclick="removeOrder('${o.id}')">Supprimer la commande</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function refundOrder(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  if(!confirm(`Rembourser ${o.priceTotal.toFixed(2)}€ au client ? Cette action est irréversible.`)) return;
+  const btn=document.getElementById('refundBtn_'+orderId);
+  if(btn){ btn.disabled=true; btn.textContent='Remboursement en cours...'; }
+  try{
+    const refund=cloudFunctions.httpsCallable('refundOrder');
+    await withTimeout(refund({orderId}), 15000);
+    showToast("Remboursement effectué !");
+    await loadAll();
+    renderAdminOrders();
+  }catch(e){
+    showToast("Échec du remboursement : "+(e.message||'réessayez'));
+    if(btn){ btn.disabled=false; btn.textContent='💳 Rembourser le client'; }
+  }
+}
+async function retryTransfer(orderId){
+  const btn=document.getElementById('retryBtn_'+orderId);
+  if(btn){ btn.disabled=true; btn.textContent='Virement en cours...'; }
+  try{
+    const retry=cloudFunctions.httpsCallable('retryTransfer');
+    await withTimeout(retry({orderId}), 15000);
+    showToast("Virement effectué !");
+    await loadAll();
+    renderAdminOrders();
+  }catch(e){
+    showToast("Échec du virement : "+(e.message||'réessayez'));
+    if(btn){ btn.disabled=false; btn.textContent='🔁 Réessayer le virement'; }
+  }
+}
+async function deleteOrderRating(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o || !o.rating) return;
+  if(!confirm("Supprimer cette note et ce commentaire ?")) return;
+  const prevRating=o.rating, prevComment=o.ratingComment;
+  const key=cleanPhone(o.gpPhone);
+  const p=profiles[key];
+  const prevSum=p?p.ratingSum:undefined, prevCount=p?p.ratingCount:undefined;
+  o.rating=null; o.ratingComment=null;
+  if(p && p.ratingCount>0){
+    p.ratingSum=Math.max(0,(p.ratingSum||0)-prevRating);
+    p.ratingCount=Math.max(0,(p.ratingCount||0)-1);
+  }
+  try{
+    await saveOrders();
+    if(p) await saveProfiles();
+    if(adminSub==='profiles') renderAdminProfiles(); else renderAdminOrders();
+    showToast("Note supprimée");
+  }catch(e){
+    o.rating=prevRating; o.ratingComment=prevComment;
+    if(p){ p.ratingSum=prevSum; p.ratingCount=prevCount; }
+    adminWriteError(e);
+  }
+}
+async function deleteOrderClientRating(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o || !o.clientRating) return;
+  if(!confirm("Supprimer cette note et ce commentaire ?")) return;
+  const prevRating=o.clientRating, prevComment=o.clientRatingComment;
+  const key=cleanPhone(o.clientPhone);
+  const p=profiles[key];
+  const prevSum=p?p.clientRatingSum:undefined, prevCount=p?p.clientRatingCount:undefined;
+  o.clientRating=null; o.clientRatingComment=null;
+  if(p && p.clientRatingCount>0){
+    p.clientRatingSum=Math.max(0,(p.clientRatingSum||0)-prevRating);
+    p.clientRatingCount=Math.max(0,(p.clientRatingCount||0)-1);
+  }
+  try{
+    await saveOrders();
+    if(p) await saveProfiles();
+    if(adminSub==='profiles') renderAdminProfiles(); else renderAdminOrders();
+    showToast("Note supprimée");
+  }catch(e){
+    o.clientRating=prevRating; o.clientRatingComment=prevComment;
+    if(p){ p.clientRatingSum=prevSum; p.clientRatingCount=prevCount; }
+    adminWriteError(e);
+  }
+}
+async function resetGpRating(phone){
+  const p=profiles[phone];
+  if(!p || !p.ratingCount) return;
+  if(!confirm("Réinitialiser la note voyageur de ce profil (y compris les avis liés à des commandes déjà supprimées) ?")) return;
+  const prevSum=p.ratingSum, prevCount=p.ratingCount;
+  p.ratingSum=0; p.ratingCount=0;
+  try{
+    await saveProfiles();
+    renderAdminProfiles();
+    showToast("Note réinitialisée");
+  }catch(e){
+    p.ratingSum=prevSum; p.ratingCount=prevCount;
+    adminWriteError(e);
+  }
+}
+async function resetClientRating(phone){
+  const p=profiles[phone];
+  if(!p || !p.clientRatingCount) return;
+  if(!confirm("Réinitialiser la note client de ce profil (y compris les avis liés à des commandes déjà supprimées) ?")) return;
+  const prevSum=p.clientRatingSum, prevCount=p.clientRatingCount;
+  p.clientRatingSum=0; p.clientRatingCount=0;
+  try{
+    await saveProfiles();
+    renderAdminProfiles();
+    showToast("Note réinitialisée");
+  }catch(e){
+    p.clientRatingSum=prevSum; p.clientRatingCount=prevCount;
+    adminWriteError(e);
+  }
+}
+async function adminCancelOrder(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const prevStatus=o.status, prevSeen=o.adminSeen;
+  o.status='cancelled_client';
+  o.adminSeen=true;
+  try{ await saveOrders(); renderAdminOrders(); showToast("Commande annulée"); }
+  catch(e){ o.status=prevStatus; o.adminSeen=prevSeen; adminWriteError(e); }
+}
+async function markOrderSeen(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const prev=o.adminSeen;
+  o.adminSeen=true;
+  try{ await saveOrders(); renderAdminOrders(); showToast("Marqué comme traité"); }
+  catch(e){ o.adminSeen=prev; adminWriteError(e); }
+}
+async function saveOrderNote(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const prev=o.adminNote;
+  o.adminNote=document.getElementById('adminNote_'+orderId).value;
+  try{ await saveOrders(); showToast("Note enregistrée"); }
+  catch(e){ o.adminNote=prev; adminWriteError(e); }
+}
+async function removeOrder(orderId){
+  try{
+    await db.collection('orders').doc(orderId).delete();
+    orders=orders.filter(x=>x.id!==orderId);
+    renderAdminOrders(); showToast("Commande supprimée");
+  }catch(e){ adminWriteError(e); }
+}
+function renderAdminListings(){
+  updateAdminNotifBadges();
+  const list=document.getElementById('adminList');
+  if(listings.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune annonce.</p>'; return; }
+  list.innerHTML=listings.slice().reverse().map(l=>{
+    const isGp=l.type==='gp';
+    const profile=isGp?(profiles[l.phone]||{}):null;
+    const habitCount=countHabits(l.phone,l.country,l.type);
+    const matches=isGp?matchingAlerts(l):[];
+    return `
+    <div class="admin-card">
+      <span class="type-pill ${isGp?'gp':'colis'}">${isGp?'✈️ VOYAGEUR':'📦 COLIS'}</span>
+      ${habitCount>1?`<span class="type-pill profile">🔁 Habitué (${habitCount}x)</span>`:''}<br>
+      <b>${esc(isGp?(profile.name||'?'):l.name)}</b> — ${esc(l.from)} → ${esc(l.to)} (${esc(l.country)})<br>
+      <span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(isGp?profile.phone:l.phone)} · ${fmtDate(l.date)} · ${l.kg}kg</span>
+      ${isGp?`<div style="margin-top:6px;font-size:12px;">${profile.verified?'✅ Identité vérifiée':'⏳ Non vérifiée'}</div>`:''}
+      ${isGp&&l.ticket?`<div class="name-check">Billet</div>${l.ticket.type==='image'?`<img src="${l.ticket.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(l.ticket.name)}</p>`}`:''}
+      ${isGp&&l.ticketText?`<div class="name-check">Texte lu automatiquement sur le billet (à vérifier, peut contenir des erreurs)</div><p style="font-size:11.5px;color:var(--ink-soft);white-space:pre-wrap;background:var(--bg);border-radius:8px;padding:8px 10px;">${esc(l.ticketText)}</p>`:''}
+      ${!isGp&&l.desc?`<div style="font-size:12.5px;margin-top:6px;">📝 ${esc(l.desc)}</div>`:''}
+      ${!isGp&&l.photo?(l.photo.type==='image'?`<img src="${l.photo.data}">`:''):''}
+      ${isGp&&matches.length>0?`<div class="name-check">🔔 ${matches.length} à prévenir</div>${matches.map(a=>`<div style="display:flex;justify-content:space-between;background:var(--bg);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px;"><span>${esc(a.name)}</span><button style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:11.5px;" onclick="notifyAlert('${a.id}','${escJs(l.from)}','${escJs(l.to)}','${fmtDate(l.date)}')">Notifier</button></div>`).join('')}`:''}
+      <div class="admin-actions">
+        ${!isGp?`<button class="btn-approve" onclick="setColisVerified('${l.id}',true)">${l.verified?'✅ Vérifié':'Approuver'}</button>`:''}
+        <button class="btn-reject" onclick="removeListing('${l.id}')">Supprimer l'annonce</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function notifyAlert(alertId,from,to,date){
+  const a=alerts.find(x=>x.id===alertId);
+  if(!a) return;
+  try{
+    await pushMessage(a.phone,'admin',`Bonjour ${a.name}, un voyageur part de ${from} vers ${to} le ${date} ! Répondez ici pour être mis en relation.`);
+    a.notified=true; await saveAlerts();
+    showToast("Message envoyé"); renderAdminListings();
+  }catch(e){ adminWriteError(e); }
+}
+function renderAdminMessages(){
+  updateAdminNotifBadges();
+  const list=document.getElementById('adminList');
+  if(adminOpenThreadPhone){
+    const th=messages[adminOpenThreadPhone];
+    if(!th){ adminOpenThreadPhone=null; renderAdminMessages(); return; }
+    list.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <button class="btn ghost sm" onclick="adminOpenThreadPhone=null;renderAdminMessages();">← Retour</button>
+        <button class="btn-reject" style="flex:none;width:auto;padding:7px 12px;border-radius:8px;font-weight:600;font-size:12px;" onclick="removeMessageThread('${adminOpenThreadPhone}')">🗑️ Supprimer la conversation</button>
+      </div>
+      <div style="font-weight:700;margin:10px 0;">${esc(th.name)} · ${esc(adminOpenThreadPhone)}</div>
+      <div class="chat-thread">${th.thread.map((m,i)=>`<div class="bubble ${m.from==='admin'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)} · <span style="cursor:pointer;" onclick="removeMessage('${adminOpenThreadPhone}',${i})">🗑️</span></span></div>`).join('')||'<p style="color:var(--ink-soft);font-size:12.5px;">Aucun message.</p>'}</div>
+      <div class="chat-input"><textarea id="adminChatInput" placeholder="Répondre..."></textarea><button class="btn" style="margin-top:0;" onclick="sendAdminMessage()">Envoyer</button></div>`;
+    return;
+  }
+  const entries=Object.entries(messages).sort((a,b)=>{
+    const la=a[1].thread[a[1].thread.length-1]?.ts||0, lb=b[1].thread[b[1].thread.length-1]?.ts||0;
+    return lb-la;
+  });
+  if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune conversation.</p>'; return; }
+  list.innerHTML=entries.map(([phone,th])=>{
+    const last=th.thread[th.thread.length-1];
+    return `<div class="thread-row" onclick="adminOpenThreadPhone='${phone}';renderAdminMessages();">
+      <div><b>${esc(th.name)}</b><br><span style="color:var(--ink-soft);font-size:12px;">${last?esc(last.text.slice(0,38)+(last.text.length>38?'…':'')):'Pas de message'}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${th.unreadAdmin?`<span class="unread">Nouveau</span>`:''}
+        <button class="btn-reject" style="flex:none;width:auto;padding:6px 10px;border-radius:8px;font-weight:600;font-size:14px;" onclick="event.stopPropagation();removeMessageThread('${phone}');">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function removeMessageThread(phone){
+  try{
+    await db.collection('messages').doc(phone).delete();
+    delete messages[phone];
+    if(adminOpenThreadPhone===phone) adminOpenThreadPhone=null;
+    renderAdminMessages(); showToast("Conversation supprimée");
+  }catch(e){ adminWriteError(e); }
+}
+async function removeMessage(phone,idx){
+  const th=messages[phone];
+  if(!th) return;
+  const prevThread=th.thread.slice();
+  th.thread.splice(idx,1);
+  try{
+    await db.collection('messages').doc(phone).set(th);
+    renderAdminMessages(); showToast("Message supprimé");
+  }catch(e){ th.thread=prevThread; adminWriteError(e); }
+}
+async function sendAdminMessage(){
+  const text=document.getElementById('adminChatInput').value.trim();
+  if(!text||!adminOpenThreadPhone) return;
+  try{
+    await pushMessage(adminOpenThreadPhone,'admin',text);
+    messages[adminOpenThreadPhone].unreadAdmin=false;
+    await saveMessages(); renderAdminMessages();
+  }catch(e){ adminWriteError(e); }
+}
+async function setProfileVerified(phone,val){
+  if(!profiles[phone]) return;
+  const prev=profiles[phone].verified;
+  profiles[phone].verified=val;
+  try{ await saveProfiles(); renderAdminProfiles(); showToast("Mis à jour"); }
+  catch(e){ profiles[phone].verified=prev; adminWriteError(e); }
+}
+async function removeProfile(phone){
+  try{
+    await db.collection('profiles').doc(phone).delete();
+    try{ await db.collection('profilesPrivate').doc(phone).delete(); }catch(e){}
+    delete profiles[phone];
+    delete profilesPrivate[phone];
+    renderAdminProfiles(); showToast("Supprimé");
+  }catch(e){ adminWriteError(e); }
+}
+async function setColisVerified(id,val){
+  const l=listings.find(x=>x.id===id);
+  if(!l) return;
+  const prev=l.verified;
+  l.verified=val;
+  try{ await saveListings(); renderAdminListings(); showToast("Mis à jour"); }
+  catch(e){ l.verified=prev; adminWriteError(e); }
+}
+async function removeListing(id){
+  try{
+    await db.collection('listings').doc(id).delete();
+    listings=listings.filter(x=>x.id!==id);
+    renderAdminListings(); showToast("Supprimé");
+  }catch(e){ adminWriteError(e); }
+}
+</script>
+
+</body>
+</html>
