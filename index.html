@@ -1471,12 +1471,20 @@ async function mountPayoutOnboarding(){
       });
     }
     if(!window.StripeConnect) throw new Error('StripeConnect indisponible');
-    const result=await callCloudFn('createAccountSession', {phone: me.phone, name: me.name, email: me.email, phoneE164: me.phoneE164});
-    const clientSecret=result.data.clientSecret;
+    // fetchClientSecret doit redemander un jeton FRAIS à chaque appel (le
+    // composant intégré le rappelle lui-même au fil de sa session, pas
+    // juste une fois à l'initialisation) — réutiliser toujours le même
+    // jeton capturé une seule fois provoquait "Une erreur s'est produite
+    // lors de l'authentification de votre compte" dès que Stripe en
+    // redemandait un.
+    const fetchClientSecret=async()=>{
+      const result=await callCloudFn('createAccountSession', {phone: me.phone, name: me.name, email: me.email, phoneE164: me.phoneE164});
+      return result.data.clientSecret;
+    };
     const cs=getComputedStyle(document.documentElement);
     const connectInstance=StripeConnect.init({
       publishableKey: STRIPE_PUBLISHABLE_KEY,
-      fetchClientSecret: async()=>clientSecret,
+      fetchClientSecret,
       locale: 'fr-FR',
       appearance:{ overlays:'dialog', variables:{ colorPrimary: cs.getPropertyValue('--accent').trim(), fontFamily:"'Inter', sans-serif" } },
     });
