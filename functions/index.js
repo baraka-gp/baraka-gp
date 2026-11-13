@@ -482,6 +482,12 @@ exports.adminDeleteAccount = onCall({ region: REGION }, async (request) => {
   if (!phone) throw new HttpsError('invalid-argument', 'Numéro de téléphone requis');
 
   const account = await findAccountByPhone(phone);
+  // Un admin qui teste cette fonction sur son propre numéro se verrouillerait
+  // lui-même hors de l'admin (son compte Auth sert aussi à s'y connecter) —
+  // c'est déjà arrivé une fois. On bloque ce cas précis.
+  if (account && account.ref.id === request.auth.uid) {
+    throw new HttpsError('failed-precondition', 'Vous ne pouvez pas supprimer votre propre compte depuis l\'admin');
+  }
   if (account) await account.ref.delete();
 
   await db.collection('profiles').doc(phone).delete().catch(() => {});

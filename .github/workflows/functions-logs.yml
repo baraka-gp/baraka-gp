@@ -161,8 +161,18 @@ jobs:
             const admin = require('firebase-admin');
             admin.initializeApp({ projectId: 'baraka-gp' });
             (async () => {
-              const user = await admin.auth().getUserByEmail(process.env.ADMIN_EMAIL);
-              console.log('Compte trouvé : uid =', user.uid, '| email =', user.email);
+              let user;
+              try {
+                user = await admin.auth().getUserByEmail(process.env.ADMIN_EMAIL);
+                console.log('Compte trouvé : uid =', user.uid, '| email =', user.email);
+              } catch (e) {
+                if (!/no user record/i.test(e.message || '')) throw e;
+                const tempPassword = require('crypto').randomBytes(12).toString('base64').replace(/[^A-Za-z0-9]/g, '').slice(0, 16) + '!1';
+                user = await admin.auth().createUser({ email: process.env.ADMIN_EMAIL, password: tempPassword });
+                console.log('Aucun compte trouvé pour cet email -> recréé : uid =', user.uid);
+                console.log('MOT DE PASSE TEMPORAIRE :', tempPassword);
+                console.log('(à changer immédiatement après connexion, ou via \"Mot de passe oublié\")');
+              }
               await admin.firestore().collection('admins').doc(user.uid).set({ role: 'admin' });
               console.log('-> Déclaré admin avec succès (collection admins, doc', user.uid + ')');
             })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
