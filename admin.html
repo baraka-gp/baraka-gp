@@ -436,7 +436,7 @@ function renderAdminProfiles(){
       <div class="admin-actions">
         <button class="btn-approve" onclick="setProfileVerified('${phone}',true)">${p.verified?'✅ Vérifié':'Approuver'}</button>
         <button class="btn-reject" onclick="toggleBlockPhone('${phone}')">${blockedPhones[phone]?'Débloquer':'Bloquer ce numéro'}</button>
-        <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer le profil</button>
+        <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer le compte</button>
       </div>
     </div>`;
   }).join('');
@@ -744,12 +744,13 @@ async function setProfileVerified(phone,val){
   catch(e){ profiles[phone].verified=prev; adminWriteError(e); }
 }
 async function removeProfile(phone){
+  if(!confirm("Supprimer définitivement ce compte (connexion, profil et pièce d'identité) ? Cette action est irréversible.")) return;
   try{
-    await db.collection('profiles').doc(phone).delete();
-    try{ await db.collection('profilesPrivate').doc(phone).delete(); }catch(e){}
+    const del=cloudFunctions.httpsCallable('adminDeleteAccount');
+    await del({phone});
     delete profiles[phone];
     delete profilesPrivate[phone];
-    renderAdminProfiles(); showToast("Supprimé");
+    renderAdminProfiles(); showToast("Compte supprimé");
   }catch(e){ adminWriteError(e); }
 }
 async function setColisVerified(id,val){

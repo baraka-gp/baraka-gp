@@ -467,6 +467,33 @@ exports.deleteMyAccount = onCall({ region: REGION }, async (request) => {
   return { success: true };
 });
 
+// Suppression complète d'un compte par un admin, depuis le panneau admin.
+// admin.html ne connaît que le numéro de téléphone (il ne lit jamais la
+// collection "accounts"), donc on retrouve ici le compte et son UID
+// Firebase Auth à partir du numéro avant de tout supprimer : contrairement
+// à deleteMyAccount, un admin est de confiance et on supprime toujours
+// profiles/profilesPrivate, même si aucun compte Auth correspondant n'est
+// retrouvé (ex. fiche orpheline).
+exports.adminDeleteAccount = onCall({ region: REGION }, async (request) => {
+  if (!request.auth || !(await isAdminUid(request.auth.uid))) {
+    throw new HttpsError('permission-denied', 'Réservé aux admins');
+  }
+  const phone = request.data && request.data.phone;
+  if (!phone) throw new HttpsError('invalid-argument', 'Numéro de téléphone requis');
+
+  const account = await findAccountByPhone(phone);
+  if (account) await account.ref.delete();
+
+  await db.collection('profiles').doc(phone).delete().catch(() => {});
+  await db.collection('profilesPrivate').doc(phone).delete().catch(() => {});
+
+  if (account) {
+    await admin.auth().deleteUser(account.ref.id).catch(() => {});
+  }
+
+  return { success: true };
+});
+
 // Email + notification push au voyageur dès qu'un client lui envoie une
 // nouvelle demande. La notification reprend le nom du client en titre,
 // comme un message reçu — jamais une bannière générique.
