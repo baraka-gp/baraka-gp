@@ -52,12 +52,8 @@ on:
         description: 'Vérifier les commandes "acceptée" avec un paiement Stripe déjà réussi mais jamais marquées payées (ex. suite à une panne du webhook), et les corriger (oui/non)'
         required: false
       check_recent_calls:
-        description: 'Fonctions (séparées par des virgules) dont on veut voir les appels des dernières heures via gcloud logging (contourne le retard de firebase functions:log), ex createAccountSession,createConnectOnboardingLink'
+        description: 'Fonctions (séparées par des virgules, ":" + nb heures en option, défaut 30) dont on veut voir les appels récents via gcloud logging (contourne le retard de firebase functions:log), ex createAccountSession,createConnectOnboardingLink:48'
         required: false
-      check_recent_calls_hours:
-        description: 'Fenêtre en heures pour check_recent_calls (défaut 24)'
-        required: false
-        default: '24'
       check_api_key_restrictions:
         description: 'Vérifier les restrictions (referrers HTTP autorisés) de la clé API Firebase du site (oui/non)'
         required: false
@@ -111,9 +107,13 @@ jobs:
       - name: Afficher les appels récents (gcloud logging, sans le retard de firebase functions:log)
         if: inputs.check_recent_calls != ''
         run: |
-          NAMES=$(echo "${{ inputs.check_recent_calls }}" | tr ',' '\n' | tr '[:upper:]' '[:lower:]' | sed 's/^/resource.labels.service_name="/; s/$/"/' | paste -sd ' OR ')
-          SINCE="$(date -u -d '${{ inputs.check_recent_calls_hours }} hours ago' +%Y-%m-%dT%H:%M:%SZ)"
-          echo "Fenêtre : depuis $SINCE (${{ inputs.check_recent_calls_hours }}h)"
+          RAW="${{ inputs.check_recent_calls }}"
+          HOURS="${RAW##*:}"
+          case "$HOURS" in (*[!0-9]*|'') HOURS=30;; esac
+          FUNCS="${RAW%:*}"
+          NAMES=$(echo "$FUNCS" | tr ',' '\n' | tr '[:upper:]' '[:lower:]' | sed 's/^/resource.labels.service_name="/; s/$/"/' | paste -sd ' OR ')
+          SINCE="$(date -u -d "$HOURS hours ago" +%Y-%m-%dT%H:%M:%SZ)"
+          echo "Fenêtre : depuis $SINCE (${HOURS}h)"
           gcloud logging read "resource.type=\"cloud_run_revision\" AND ($NAMES) AND timestamp>=\"$SINCE\"" \
             --project baraka-gp --order desc --limit 200 --format="table(timestamp, severity, textPayload, jsonPayload.message)"
 
