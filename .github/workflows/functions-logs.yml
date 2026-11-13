@@ -54,6 +54,10 @@ on:
       check_recent_calls:
         description: 'Fonctions (séparées par des virgules) dont on veut voir les appels des dernières heures via gcloud logging (contourne le retard de firebase functions:log), ex createAccountSession,createConnectOnboardingLink'
         required: false
+      check_recent_calls_hours:
+        description: 'Fenêtre en heures pour check_recent_calls (défaut 24)'
+        required: false
+        default: '24'
       check_api_key_restrictions:
         description: 'Vérifier les restrictions (referrers HTTP autorisés) de la clé API Firebase du site (oui/non)'
         required: false
@@ -108,8 +112,10 @@ jobs:
         if: inputs.check_recent_calls != ''
         run: |
           NAMES=$(echo "${{ inputs.check_recent_calls }}" | tr ',' '\n' | tr '[:upper:]' '[:lower:]' | sed 's/^/resource.labels.service_name="/; s/$/"/' | paste -sd ' OR ')
-          gcloud logging read "resource.type=\"cloud_run_revision\" AND ($NAMES) AND timestamp>=\"$(date -u -d '6 hours ago' +%Y-%m-%dT%H:%M:%SZ)\"" \
-            --project baraka-gp --order desc --limit 100 --format="table(timestamp, severity, textPayload, jsonPayload.message)"
+          SINCE="$(date -u -d '${{ inputs.check_recent_calls_hours }} hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+          echo "Fenêtre : depuis $SINCE (${{ inputs.check_recent_calls_hours }}h)"
+          gcloud logging read "resource.type=\"cloud_run_revision\" AND ($NAMES) AND timestamp>=\"$SINCE\"" \
+            --project baraka-gp --order desc --limit 200 --format="table(timestamp, severity, textPayload, jsonPayload.message)"
 
       - name: Inspecter Firestore (comptes et jetons push)
         if: inputs.functions == ''
