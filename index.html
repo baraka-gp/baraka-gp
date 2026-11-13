@@ -1477,9 +1477,24 @@ async function mountPayoutOnboarding(){
     // jeton capturé une seule fois provoquait "Une erreur s'est produite
     // lors de l'authentification de votre compte" dès que Stripe en
     // redemandait un.
+    // Diagnostic temporaire : aucun appel à createAccountSession n'arrive au
+    // serveur alors que l'erreur d'authentification persiste côté Stripe —
+    // on affiche donc l'erreur réelle de callCloudFn (réseau, timeout...) au
+    // lieu de la laisser disparaître dans le composant Stripe, pour savoir
+    // enfin ce qui bloque avant même d'atteindre nos Cloud Functions.
     const fetchClientSecret=async()=>{
-      const result=await callCloudFn('createAccountSession', {phone: me.phone, name: me.name, email: me.email, phoneE164: me.phoneE164});
-      return result.data.clientSecret;
+      try{
+        const result=await callCloudFn('createAccountSession', {phone: me.phone, name: me.name, email: me.email, phoneE164: me.phoneE164});
+        return result.data.clientSecret;
+      }catch(e){
+        const msg='Diagnostic Stripe (fetchClientSecret) : '+(e && (e.code||e.message) || 'erreur inconnue');
+        showToast(msg, true);
+        const diag=document.createElement('p');
+        diag.style.cssText='font-size:12px;color:#b45309;margin-top:12px;word-break:break-word;';
+        diag.textContent=msg;
+        mount.appendChild(diag);
+        throw e;
+      }
     };
     const cs=getComputedStyle(document.documentElement);
     const connectInstance=StripeConnect.init({
@@ -1496,6 +1511,7 @@ async function mountPayoutOnboarding(){
     // Repli : si le formulaire intégré ne se charge pas (réseau, navigateur
     // trop ancien...), on garde quand même un moyen de finir la configuration
     // via la page Stripe classique plutôt que de laisser un écran vide.
+    showToast('Diagnostic Stripe (init) : '+(e && (e.code||e.message) || 'erreur inconnue'), true);
     mount.innerHTML='<button class="btn gold" onclick="setupPayoutAccount()">Configurer mon compte de paiement</button>';
   }
 }
