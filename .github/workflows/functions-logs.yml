@@ -51,6 +51,9 @@ on:
       reconcile_payments:
         description: 'Vérifier les commandes "acceptée" avec un paiement Stripe déjà réussi mais jamais marquées payées (ex. suite à une panne du webhook), et les corriger (oui/non)'
         required: false
+      check_recent_calls:
+        description: 'Fonctions (séparées par des virgules) dont on veut voir les appels des dernières heures via gcloud logging (contourne le retard de firebase functions:log), ex createAccountSession,createConnectOnboardingLink'
+        required: false
       check_api_key_restrictions:
         description: 'Vérifier les restrictions (referrers HTTP autorisés) de la clé API Firebase du site (oui/non)'
         required: false
@@ -100,6 +103,13 @@ jobs:
       - name: Afficher les journaux récents
         if: inputs.functions != ''
         run: firebase functions:log --project baraka-gp --only "${{ inputs.functions }}" -n "${{ inputs.lines }}"
+
+      - name: Afficher les appels récents (gcloud logging, sans le retard de firebase functions:log)
+        if: inputs.check_recent_calls != ''
+        run: |
+          NAMES=$(echo "${{ inputs.check_recent_calls }}" | tr ',' '\n' | tr '[:upper:]' '[:lower:]' | sed 's/^/resource.labels.service_name="/; s/$/"/' | paste -sd ' OR ')
+          gcloud logging read "resource.type=\"cloud_run_revision\" AND ($NAMES) AND timestamp>=\"$(date -u -d '6 hours ago' +%Y-%m-%dT%H:%M:%SZ)\"" \
+            --project baraka-gp --order desc --limit 100 --format="table(timestamp, severity, textPayload, jsonPayload.message)"
 
       - name: Inspecter Firestore (comptes et jetons push)
         if: inputs.functions == ''
