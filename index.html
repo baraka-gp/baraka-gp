@@ -1462,13 +1462,17 @@ async function mountPayoutOnboarding(){
   mount.innerHTML='<div class="search-spinner" style="margin:24px auto;"></div>';
   try{
     if(!window.StripeConnect){
-      await new Promise((resolve,reject)=>{
+      // Sans timeout ici, un script qui ne déclenche ni onload ni onerror
+      // (connexion qui traîne, requête jamais finalisée par la webview...)
+      // bloquait l'écran indéfiniment sur le spinner, sans jamais atteindre
+      // le bloc catch ni afficher le moindre diagnostic.
+      await withTimeout(new Promise((resolve,reject)=>{
         const s=document.createElement('script');
         s.src='https://connect-js.stripe.com/v1.0/connect.js';
         s.onload=resolve;
         s.onerror=()=>reject(new Error('Chargement du script Stripe Connect impossible'));
         document.head.appendChild(s);
-      });
+      }), 10000);
     }
     if(!window.StripeConnect) throw new Error('StripeConnect indisponible');
     // fetchClientSecret doit redemander un jeton FRAIS à chaque appel (le
@@ -1511,8 +1515,10 @@ async function mountPayoutOnboarding(){
     // Repli : si le formulaire intégré ne se charge pas (réseau, navigateur
     // trop ancien...), on garde quand même un moyen de finir la configuration
     // via la page Stripe classique plutôt que de laisser un écran vide.
-    showToast('Diagnostic Stripe (init) : '+(e && (e.code||e.message) || 'erreur inconnue'), true);
-    mount.innerHTML='<button class="btn gold" onclick="setupPayoutAccount()">Configurer mon compte de paiement</button>';
+    const msg='Diagnostic Stripe (init) : '+(e && (e.code||e.message) || 'erreur inconnue');
+    showToast(msg, true);
+    mount.innerHTML='<button class="btn gold" onclick="setupPayoutAccount()">Configurer mon compte de paiement</button>'
+      +'<p style="font-size:12px;color:#b45309;margin-top:12px;word-break:break-word;">'+msg+'</p>';
   }
 }
 function setBadge(id, count){
