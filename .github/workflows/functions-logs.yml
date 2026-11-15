@@ -527,9 +527,38 @@ jobs:
           cat /tmp/updated.json
 
       - name: Vérifier une URL (code HTTP)
-        if: inputs.check_url != ''
+        if: inputs.check_url != '' && !startsWith(inputs.check_url, 'stripe-account-link:')
         run: |
           curl -sS -o /dev/null -w "HTTP %{http_code}\n" "${{ inputs.check_url }}"
+
+      - name: Générer un lien d'onboarding Stripe frais et vérifier son chargement
+        # Préfixe "stripe-account-link:acct_XXX" sur check_url : crée un
+        # nouveau lien de configuration (comme le ferait
+        # createConnectOnboardingLink) pour ce compte connecté et vérifie
+        # comment Stripe répond, pour savoir si "ça charge indéfiniment"
+        # vient de Stripe (réponse lente/erreur) ou seulement du réseau
+        # mobile de l'utilisateur.
+        if: startsWith(inputs.check_url, 'stripe-account-link:')
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          ACCOUNT_ID: ${{ inputs.check_url }}
+        run: |
+          set -e
+          ACCT="${ACCOUNT_ID#stripe-account-link:}"
+          curl -sS https://api.stripe.com/v1/account_links -u "$STRIPE_SECRET_KEY:" \
+            -d "account=$ACCT" \
+            -d "refresh_url=https://baraka-gp.github.io/baraka-gp/index.html?stripe=refresh" \
+            -d "return_url=https://baraka-gp.github.io/baraka-gp/index.html?stripe=return" \
+            -d "type=account_onboarding" \
+            -o /tmp/link.json
+          echo "=== Réponse Stripe (création du lien) ==="
+          cat /tmp/link.json
+          URL=$(jq -r '.url' /tmp/link.json)
+          if [ "$URL" = "null" ] || [ -z "$URL" ]; then echo "Pas d'URL renvoyée, arrêt."; exit 0; fi
+          echo "=== Chargement de ce lien (code HTTP, temps, taille) ==="
+          curl -sS -L -o /tmp/page.html -w "HTTP %{http_code} | %{time_total}s | %{size_download} octets | redirigé vers %{url_effective}\n" "$URL"
+          echo "=== Premiers 500 caractères de la page renvoyée ==="
+          head -c 500 /tmp/page.html
 
       - name: Retrouver la dernière commande entre deux numéros
         if: inputs.find_last_order != ''
