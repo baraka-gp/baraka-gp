@@ -154,21 +154,35 @@ jobs:
       - name: Déclarer un compte admin
         if: inputs.admin_email != ''
         env:
-          ADMIN_EMAIL: ${{ inputs.admin_email }}
+          # Suffixe ":FORCE" (ex. "foo@bar.com:FORCE") pour en plus écraser le
+          # mot de passe par un nouveau mot de passe temporaire connu, même si
+          # le compte existe déjà (utile quand l'utilisateur ne connaît plus
+          # son mot de passe actuel).
+          ADMIN_EMAIL_RAW: ${{ inputs.admin_email }}
         run: |
           npm install firebase-admin@12
           node -e "
             const admin = require('firebase-admin');
             admin.initializeApp({ projectId: 'baraka-gp' });
+            const raw = process.env.ADMIN_EMAIL_RAW;
+            const force = /:FORCE$/i.test(raw);
+            const email = raw.replace(/:FORCE$/i, '');
+            const genPassword = () => require('crypto').randomBytes(12).toString('base64').replace(/[^A-Za-z0-9]/g, '').slice(0, 16) + '!1';
             (async () => {
               let user;
               try {
-                user = await admin.auth().getUserByEmail(process.env.ADMIN_EMAIL);
+                user = await admin.auth().getUserByEmail(email);
                 console.log('Compte trouvé : uid =', user.uid, '| email =', user.email);
+                if (force) {
+                  const tempPassword = genPassword();
+                  await admin.auth().updateUser(user.uid, { password: tempPassword });
+                  console.log('MOT DE PASSE FORCÉ :', tempPassword);
+                  console.log('(à changer immédiatement après connexion, ou via \"Mot de passe oublié\")');
+                }
               } catch (e) {
                 if (!/no user record/i.test(e.message || '')) throw e;
-                const tempPassword = require('crypto').randomBytes(12).toString('base64').replace(/[^A-Za-z0-9]/g, '').slice(0, 16) + '!1';
-                user = await admin.auth().createUser({ email: process.env.ADMIN_EMAIL, password: tempPassword });
+                const tempPassword = genPassword();
+                user = await admin.auth().createUser({ email, password: tempPassword });
                 console.log('Aucun compte trouvé pour cet email -> recréé : uid =', user.uid);
                 console.log('MOT DE PASSE TEMPORAIRE :', tempPassword);
                 console.log('(à changer immédiatement après connexion, ou via \"Mot de passe oublié\")');
