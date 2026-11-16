@@ -265,7 +265,11 @@ async function saveProfiles(){ const batch=db.batch(); Object.keys(profiles).for
 async function saveAlerts(){ const batch=db.batch(); alerts.forEach(a=>batch.set(db.collection('alerts').doc(String(a.id)), a)); await batch.commit(); }
 async function saveMessages(){ const batch=db.batch(); Object.keys(messages).forEach(k=>batch.set(db.collection('messages').doc(k), messages[k])); await batch.commit(); }
 async function saveOrders(){ const batch=db.batch(); orders.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }
-function adminWriteError(e){ showToast("Échec : "+((e&&e.code==='permission-denied')?"droits admin manquants (vérifiez la collection « admins »)":"connexion instable, réessayez")); }
+function adminWriteError(e){
+  const code=(e&&e.code)||'';
+  if(/permission-denied/i.test(code)) showToast("Échec : droits admin manquants (vérifiez la collection « admins »)");
+  else showToast("Échec : "+(e&&(e.message||code)||'connexion instable, réessayez'));
+}
 
 function ensureThread(phone,name){
   const key=cleanPhone(phone);

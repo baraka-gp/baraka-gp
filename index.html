@@ -1698,9 +1698,9 @@ async function deleteMyAccount(){
   if(!me) return;
   if(!window.confirm("Supprimer définitivement votre compte Baraka GP ? Cette action est irréversible.")) return;
   try{
-    await withTimeout(cloudFunctions.httpsCallable('deleteMyAccount')(), 15000);
+    await callCloudFn('deleteMyAccount');
   }catch(e){
-    showToast("Erreur, réessayez");
+    showToast(e && e.message==='Session expirée, merci de vous reconnecter' ? e.message : "Erreur, réessayez");
     return;
   }
   closeSettings();
