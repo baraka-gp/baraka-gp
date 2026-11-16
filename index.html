@@ -1162,6 +1162,20 @@ function withTimeout(promise, ms){
 // elle-même — observé aussi bien sur le paiement que sur la configuration du
 // compte de paiement. On réessaie une fois automatiquement avant d'abandonner.
 async function callCloudFn(name, data, timeoutMs){
+  // La restauration "optimiste" de session (voir plus haut) affiche l'app
+  // comme connectée dès que le cache local le dit, avant même que Firebase
+  // Auth ait fini de restaurer la vraie session — un appel parti dans cette
+  // fenêtre échoue côté serveur avec "functions/unauthenticated" (identifié
+  // via le diagnostic Stripe), alors que rien ne semblait anormal à l'écran.
+  // On laisse une poignée de secondes à Firebase Auth pour rattraper son
+  // retard avant d'abandonner avec un message clair.
+  if(!auth.currentUser){
+    await new Promise(resolve=>{
+      const unsub=auth.onAuthStateChanged(()=>{ unsub(); resolve(); });
+      setTimeout(()=>{ unsub(); resolve(); }, 6000);
+    });
+  }
+  if(!auth.currentUser) throw new Error('Session expirée, merci de vous reconnecter');
   const fn=cloudFunctions.httpsCallable(name);
   try{
     return await withTimeout(fn(data), timeoutMs||15000);
