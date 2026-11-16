@@ -2,11 +2,6 @@
   "appId": "com.barakagp.app",
   "appName": "Baraka GP",
   "webDir": "www",
-  "server": {
-    "hostname": "baraka-gp.firebaseapp.com",
-    "iosScheme": "https",
-    "androidScheme": "https"
-  },
   "ios": {
     "contentInset": "automatic"
   }
