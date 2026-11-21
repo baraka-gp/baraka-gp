@@ -202,6 +202,35 @@
   .toast.show{opacity:1;transform:translate(-50%,-6px);}
   .toast.gold{background:var(--gold);}
 
+  /* PAGE D'ACCUEIL (onglet recherche) */
+  .bell-btn{position:absolute;top:calc(22px + env(safe-area-inset-top));right:20px;width:38px;height:38px;border-radius:10px;border:none;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;color:#F5EFDD;}
+  .bell-btn .icon{width:19px;height:19px;}
+  .bell-btn .notif-badge{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+  .home-mode{display:none;gap:6px;margin-top:16px;position:relative;z-index:2;}
+  .home-mode button{flex:1;border:none;border-radius:999px;padding:10px 8px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:'Inter',sans-serif;background:rgba(255,255,255,.14);color:#F5EFDD;}
+  .home-mode button.active{background:#F5EFDD;color:var(--green-dark);}
+
+  .field-label{display:flex;align-items:center;gap:6px;}
+  .field-label .icon{width:15px;height:15px;color:var(--ink-soft);}
+  .btn-home-search{margin-top:18px;width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--gold) 0%,#E0AC4E 100%);color:#3B2A08;font-weight:700;font-size:15.5px;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-home-search:hover{filter:brightness(1.04);}
+  .btn-home-search .icon{width:17px;height:17px;stroke-width:2.3;}
+
+  .promo-block{display:flex;align-items:center;gap:14px;background:var(--green-pale);border-radius:16px;padding:16px;margin:18px 0;cursor:pointer;}
+  .promo-block .promo-emoji{font-size:26px;flex-shrink:0;}
+  .promo-block .promo-text{flex:1;}
+  .promo-block .promo-text b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:2px;}
+  .promo-block .promo-text span{font-size:12.5px;color:var(--ink-soft);}
+  .promo-block .promo-arrow{width:34px;height:34px;border-radius:50%;background:var(--green);color:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .promo-block .promo-arrow .icon{width:16px;height:16px;stroke-width:2.4;}
+
+  .services-row{display:flex;justify-content:space-between;gap:8px;margin:22px 2px 4px;text-align:center;}
+  .service-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .service-item .service-icon{width:50px;height:50px;border-radius:50%;background:var(--green-pale);color:var(--green-pale-ink);display:flex;align-items:center;justify-content:center;}
+  .service-item .service-icon .icon{width:22px;height:22px;}
+  .service-item span{font-size:12px;font-weight:600;color:var(--ink-soft);line-height:1.3;}
+  .services-title{font-size:15.5px;margin:4px 2px 0;}
+
   footer{text-align:center;padding:8px 20px 0;color:var(--ink-soft);font-size:12px;line-height:1.8;}
   footer a{text-decoration:underline;}
 
@@ -291,6 +320,9 @@
   </svg>
   <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
     <span></span><span></span><span></span>
+  </button>
+  <button class="bell-btn" onclick="openDrawer()" aria-label="Notifications">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
     <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
   </button>
   <div class="top-left-name" id="topLeftName" style="display:none;"></div>
@@ -299,6 +331,10 @@
     <h1>Baraka GP</h1>
     <p>Vos colis, partout en confiance</p>
     <div class="points-bar" onclick="switchTab('points')" id="pointsBarHeader" style="display:none;">🌟 <b id="pointsHeaderVal">0</b> points Baraka</div>
+    <div class="home-mode" id="homeModeToggle">
+      <button type="button" class="active" id="homeModeSend" onclick="setHomeMode('send')">📤 Envoyer</button>
+      <button type="button" id="homeModeReceive" onclick="setHomeMode('receive')">📥 Recevoir</button>
+    </div>
   </div>
 </header>
 
@@ -341,17 +377,15 @@
     </div>
   </div>
 
-  <!-- SEARCH -->
+  <!-- SEARCH (page d'accueil) -->
   <div id="viewSearch">
     <div class="panel">
-      <h2 data-i18n="searchTitle">Où envoyez-vous votre colis ?</h2>
-      <div class="sub" data-i18n="searchSub">Tous les voyageurs disponibles sont listés ci-dessous — filtrez par trajet si besoin</div>
       <div class="row2">
-        <div><label data-i18n="labelFrom">Ville de départ</label><input type="text" id="searchFrom" list="fromCities" oninput="renderResults()" placeholder="Paris"></div>
-        <div><label data-i18n="labelTo">Ville d'arrivée</label><input type="text" id="searchTo" list="toCities" oninput="autoSetCountry('searchTo','searchCountry');renderResults();" placeholder="Nouakchott"></div>
+        <div><label class="field-label"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21c-4-4.5-7-8-7-11a7 7 0 0 1 14 0c0 3-3 6.5-7 11Z"/></svg><span data-i18n="labelFrom">Ville de départ</span></label><input type="text" id="searchFrom" list="fromCities" oninput="renderResults()" placeholder="Paris"></div>
+        <div><label class="field-label"><svg class="icon" viewBox="0 0 24 24"><path d="M5 3v18"/><path d="M5 4h11l-2 4 2 4H5"/></svg><span data-i18n="labelTo">Ville d'arrivée</span></label><input type="text" id="searchTo" list="toCities" oninput="autoSetCountry('searchTo','searchCountry');renderResults();" placeholder="Nouakchott"></div>
       </div>
       <datalist id="fromCities"></datalist><datalist id="toCities"></datalist>
-      <label data-i18n="labelDestination">Destination</label>
+      <label class="field-label"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 4 10 15 15 0 0 1-4 10 15 15 0 0 1-4-10 15 15 0 0 1 4-10Z"/></svg><span data-i18n="labelDestination">Destination</span></label>
       <select id="searchCountry" onchange="renderResults()">
         <option value="" data-i18n="optAllDestinations">Toutes les destinations</option>
         <option value="Mauritanie">🇲🇷 Mauritanie</option>
@@ -362,16 +396,34 @@
         <option value="France">🇫🇷 France</option>
       </select>
       <div class="row2">
-        <div><label data-i18n="labelSortBy">Trier par</label>
+        <div><label class="field-label"><svg class="icon" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg><span data-i18n="labelSortBy">Trier par</span></label>
           <select id="searchSort" onchange="renderResults()">
             <option value="proximity" selected data-i18n="optProximity">Proximité</option>
             <option value="date" data-i18n="optDateClosest">Date (plus proche)</option>
             <option value="kg" data-i18n="optWeightDesc">Poids disponible (plus grand)</option>
           </select>
         </div>
-        <div><label data-i18n="labelMinKg">Poids min. dispo (kg)</label><input type="number" id="searchMinKg" min="1" placeholder="Ex. 5" oninput="renderResults()"></div>
+        <div><label class="field-label"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg><span data-i18n="labelMinKg">Poids min. dispo (kg)</span></label><input type="number" id="searchMinKg" min="1" placeholder="Ex. 5" oninput="renderResults()"></div>
       </div>
+      <button type="button" class="btn-home-search" onclick="renderResults();document.getElementById('searchResultsSection').scrollIntoView({behavior:'smooth'});">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Rechercher
+        <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
     </div>
+
+    <div class="promo-block" onclick="switchTab('points')">
+      <span class="promo-emoji">🎁</span>
+      <div class="promo-text"><b>Profitez de nos offres spéciales !</b><span>Voyagez plus, dépensez moins.</span></div>
+      <span class="promo-arrow"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+    </div>
+
+    <h3 class="services-title">Pourquoi choisir Baraka GP ?</h3>
+    <div class="services-row">
+      <div class="service-item"><span class="service-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span><span>Fiabilité et sécurité</span></div>
+      <div class="service-item"><span class="service-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg></span><span>Livraison rapide</span></div>
+      <div class="service-item"><span class="service-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1v-4a9 9 0 0 1 18 0v4a1 1 0 0 1-1 1h-2a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg></span><span>Une grande communauté</span></div>
+    </div>
+
     <div id="searchResultsSection">
       <div class="results-head"><h3 data-i18n="resultsHeading">Voyageurs disponibles</h3><span id="resultCount"></span></div>
       <div id="resultsList"></div>
@@ -1957,6 +2009,8 @@ function switchTab(tab){
   ['Search','Send','Publish','Mytrips','Mydemandes','Orders','Points','Balance','Messages'].forEach(v=>{
     document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
   });
+  const homeModeToggle=document.getElementById('homeModeToggle');
+  if(homeModeToggle) homeModeToggle.style.display = tab==='search' ? 'flex' : 'none';
   stopPolling();
   if(tab==='search'){ renderResults(); startPolling(); }
   if(tab==='send' && me){ document.getElementById('sName').value=me.name; document.getElementById('sPhone').value=me.phone; }
@@ -1973,6 +2027,18 @@ function switchTab(tab){
       renderThread(); startPolling(); updateNotifBadge();
     });
   }
+}
+// Bascule purement cosmétique de la page d'accueil : "Recevoir" inverse
+// juste départ/arrivée (vous attendez un colis EN PROVENANCE de X VERS
+// chez vous), la recherche reste la même (un seul sens de trajet existe
+// côté données).
+function setHomeMode(mode){
+  document.getElementById('homeModeSend').classList.toggle('active', mode==='send');
+  document.getElementById('homeModeReceive').classList.toggle('active', mode==='receive');
+  const fromEl=document.getElementById('searchFrom'), toEl=document.getElementById('searchTo');
+  const tmp=fromEl.value; fromEl.value=toEl.value; toEl.value=tmp;
+  autoSetCountry('searchTo','searchCountry');
+  renderResults();
 }
 // Repéré via des évènements de focus plutôt que document.activeElement au
 // moment du sondage : un champ tout juste apparu (ex. juste après
