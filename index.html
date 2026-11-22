@@ -88,7 +88,10 @@
   .hamburger .notif-badge{position:absolute;top:-6px;right:-6px;width:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;z-index:6;}
   .drawer-badge{background:var(--red);color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;margin-left:6px;vertical-align:middle;}
   .hamburger span{display:block;width:18px;height:2px;background:#F5EFDD;border-radius:2px;}
-  .top-left-name{position:absolute;top:calc(30px + env(safe-area-inset-top));left:68px;color:#F5EFDD;font-size:12.5px;font-weight:600;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:5;}
+  .top-left-name{position:absolute;top:calc(30px + env(safe-area-inset-top));left:98px;color:#F5EFDD;font-size:12.5px;font-weight:600;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:5;}
+  .top-avatar{position:absolute;top:calc(22px + env(safe-area-inset-top));left:66px;width:28px;height:28px;border-radius:50%;z-index:5;cursor:pointer;display:none;border:1.5px solid rgba(255,255,255,.5);overflow:hidden;}
+  .top-avatar .avatar{width:100%;height:100%;font-size:12px;}
+  .top-avatar img.avatar{object-fit:cover;}
 
   .drawer-overlay{position:fixed;inset:0;background:rgba(31,43,36,.45);display:none;z-index:70;}
   .drawer-overlay.show{display:block;}
@@ -237,6 +240,10 @@
   .service-item .service-icon .icon{width:22px;height:22px;}
   .service-item span{font-size:12px;font-weight:600;color:var(--ink-soft);line-height:1.3;}
   .services-title{font-size:15.5px;margin:4px 2px 0;}
+  .dest-row{display:flex;gap:8px;overflow-x:auto;margin:10px 0 0;padding:2px 2px 6px;-webkit-overflow-scrolling:touch;}
+  .dest-row::-webkit-scrollbar{display:none;}
+  .dest-chip{flex-shrink:0;border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;}
+  .dest-chip:active{background:var(--green-pale);border-color:var(--green);}
 
   footer{text-align:center;padding:8px 20px 0;color:var(--ink-soft);font-size:12px;line-height:1.8;}
   footer a{text-decoration:underline;}
@@ -327,6 +334,7 @@
     <svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
     <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
   </button>
+  <span class="top-avatar" id="topAvatarBox" onclick="openDrawer()"></span>
   <div class="top-left-name" id="topLeftName" style="display:none;"></div>
   <div class="brand">
     <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#F5B83D"/></svg>
@@ -408,9 +416,19 @@
         <div><label class="field-label"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg><span data-i18n="labelMinKg">Poids min. dispo (kg)</span></label><input type="number" id="searchMinKg" min="1" placeholder="Ex. 5" oninput="renderResults()"></div>
       </div>
       <button type="button" class="btn-home-search" onclick="renderResults();document.getElementById('searchResultsSection').scrollIntoView({behavior:'smooth'});">
-        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Rechercher
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Rechercher un voyageur
         <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </button>
+    </div>
+
+    <h3 class="services-title">Destinations populaires</h3>
+    <div class="dest-row">
+      <button type="button" class="dest-chip" onclick="setPopularDestination('Mauritanie')">🇲🇷 Mauritanie</button>
+      <button type="button" class="dest-chip" onclick="setPopularDestination('Sénégal')">🇸🇳 Sénégal</button>
+      <button type="button" class="dest-chip" onclick="setPopularDestination('Mali')">🇲🇱 Mali</button>
+      <button type="button" class="dest-chip" onclick="setPopularDestination('Égypte')">🇪🇬 Égypte</button>
+      <button type="button" class="dest-chip" onclick="setPopularDestination('Arabie Saoudite')">🇸🇦 Arabie Saoudite</button>
+      <button type="button" class="dest-chip" onclick="setPopularDestination('France')">🇫🇷 France</button>
     </div>
 
     <div class="promo-block" onclick="switchTab('points')">
@@ -795,7 +813,7 @@
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottomNav">
-  <div class="bn-item active" id="bnSearch" data-i18n="bnSearch" onclick="switchTab('search')"><svg class="icon bn-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>Chercher</div>
+  <div class="bn-item active" id="bnSearch" data-i18n="bnSearch" onclick="switchTab('search')"><svg class="icon bn-icon" viewBox="0 0 24 24"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10"/><path d="M9 21v-7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v7"/></svg>Accueil</div>
   <div class="bn-item" id="bnSend" data-i18n="bnSend" onclick="switchTab('send')"><svg class="icon bn-icon" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>Envoyer</div>
   <div class="bn-item" id="bnPublish" data-i18n="bnPublish" onclick="switchTab('publish')"><svg class="icon bn-icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>Voyager</div>
   <div class="bn-item" id="bnOrders" data-i18n="bnOrders" onclick="switchTab('orders')"><svg class="icon bn-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Suivi<span class="bn-badge" id="bnBadgeOrders" style="display:none;">0</span></div>
@@ -836,7 +854,7 @@ const COMMISSION_PER_KG = 3;
 // manque, le texte français d'origine reste affiché (jamais d'écran cassé).
 const I18N = {
   en: {
-    bnSearch:'Search', bnSend:'Send', bnPublish:'Travel', bnOrders:'Tracking', bnMore:'More',
+    bnSearch:'Home', bnSend:'Send', bnPublish:'Travel', bnOrders:'Tracking', bnMore:'More',
     drawerDefaultMenu:'Menu', drawerSearch:'Find a traveler', drawerSend:'Send a package',
     drawerMydemandes:'My requests', drawerPublish:"I'm traveling", drawerMytrips:'My trips',
     drawerOrders:'My orders', drawerPoints:'My points', drawerBalance:'My balance',
@@ -951,7 +969,7 @@ const I18N = {
     balEmptyTitle:'Nothing to show yet', balEmptyDesc:'Your balance will appear here as soon as your first order, sent or received.',
   },
   ar: {
-    bnSearch:'بحث', bnSend:'إرسال', bnPublish:'سافر', bnOrders:'التتبع', bnMore:'المزيد',
+    bnSearch:'الرئيسية', bnSend:'إرسال', bnPublish:'سافر', bnOrders:'التتبع', bnMore:'المزيد',
     drawerDefaultMenu:'القائمة', drawerSearch:'ابحث عن مسافر', drawerSend:'أرسل طردًا',
     drawerMydemandes:'طلباتي', drawerPublish:'أنا أسافر', drawerMytrips:'رحلاتي',
     drawerOrders:'طلبات الشحن', drawerPoints:'نقاطي', drawerBalance:'رصيدي',
@@ -1619,8 +1637,10 @@ function updateNotifBadge(){
 }
 function updateUserHeader(){
   const topName=document.getElementById('topLeftName');
+  const topAvatar=document.getElementById('topAvatarBox');
   if(!me){
     topName.style.display='none';
+    topAvatar.style.display='none';
     document.getElementById('drawerAvatarBox').innerHTML='';
     document.getElementById('drawerNameLabel').textContent=t('drawerDefaultMenu','Menu');
     document.getElementById('drawerRatingBox').innerHTML='';
@@ -1631,9 +1651,12 @@ function updateUserHeader(){
   document.getElementById('drawerNameLabel').textContent=me.name||'Mon compte';
   const myAvg = gpRating(me.phone)!==null ? gpRating(me.phone) : clientRating(me.phone);
   document.getElementById('drawerRatingBox').innerHTML = myAvg!==null ? starsHtml(myAvg) : '';
-  document.getElementById('drawerAvatarBox').innerHTML = (me.avatar && me.avatar.type==='image')
+  const avatarHtml = (me.avatar && me.avatar.type==='image')
     ? `<img src="${me.avatar.data}" class="avatar">`
     : `<div class="avatar avatar-placeholder">${esc((me.name||'?').charAt(0).toUpperCase())}</div>`;
+  document.getElementById('drawerAvatarBox').innerHTML = avatarHtml;
+  topAvatar.innerHTML = avatarHtml;
+  topAvatar.style.display='block';
 }
 async function changeMyAvatar(){
   const file=document.getElementById('changeAvatarInput').files[0];
@@ -2033,6 +2056,11 @@ function setHomeMode(mode){
   const tmp=fromEl.value; fromEl.value=toEl.value; toEl.value=tmp;
   autoSetCountry('searchTo','searchCountry');
   renderResults();
+}
+function setPopularDestination(country){
+  document.getElementById('searchCountry').value=country;
+  renderResults();
+  document.getElementById('searchResultsSection').scrollIntoView({behavior:'smooth'});
 }
 // Repéré via des évènements de focus plutôt que document.activeElement au
 // moment du sondage : un champ tout juste apparu (ex. juste après
