@@ -75,7 +75,7 @@
   header .brand{position:relative;color:#F5EFDD;}
   header .brand .star{width:32px;height:32px;margin:0 auto 6px;}
   header h1{font-size:26px;color:#F5EFDD;letter-spacing:.5px;}
-  header p{margin:5px 0 0;color:#D9CBA3;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;}
+  header p{margin:14px 0 0;color:#F5EFDD;font-size:24px;font-weight:600;line-height:1.3;text-align:left;}
 
   .points-bar{position:relative;margin-top:14px;background:rgba(255,255,255,.12);border-radius:999px;padding:8px 16px;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#F5EFDD;cursor:pointer;}
   .points-bar b{color:var(--gold);}
@@ -340,7 +340,6 @@
     <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#F5B83D"/></svg>
     <h1>Baraka GP</h1>
     <p>Vos colis, partout en <span class="accent-word" style="text-transform:none;">confiance</span></p>
-    <div class="points-bar" onclick="switchTab('points')" id="pointsBarHeader" style="display:none;">🌟 <b id="pointsHeaderVal">0</b> points Baraka</div>
   </div>
 </header>
 
@@ -1863,12 +1862,10 @@ function availableDiscounts(phone){
   const p = points[key] ? points[key].points : 0;
   return Math.floor(p/50);
 }
-function updatePointsHeader(){
-  if(!me){ document.getElementById('pointsBarHeader').style.display='none'; return; }
-  const key=ensurePoints(me.phone);
-  document.getElementById('pointsBarHeader').style.display='inline-flex';
-  document.getElementById('pointsHeaderVal').textContent = points[key].points;
-}
+// Le pastille "points Baraka" a été retirée de l'en-tête de la page
+// d'accueil (toujours consultable dans l'onglet "Mes points") ; fonction
+// gardée en no-op pour ne pas casser ses appelants existants.
+function updatePointsHeader(){}
 function renderPointsPanel(){
   const key=ensurePoints(me.phone);
   const p = points[key].points;
