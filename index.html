@@ -108,6 +108,9 @@
   .switch input:checked + .switch-slider:before{transform:translateX(18px);}
 
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:16px;box-shadow:0 8px 24px rgba(6,78,59,.1);}
+  /* Carte flottante de la page d'accueil, chevauchant le bas de l'en-tête
+     vert comme sur la maquette (plutôt qu'enchaînée juste en dessous). */
+  .home-card{position:relative;z-index:2;margin-top:-54px;border-radius:22px;box-shadow:0 16px 36px rgba(6,78,59,.22);}
   .panel h2{font-size:19px;margin-bottom:4px;}
   .panel .sub{color:var(--ink-soft);font-size:13px;margin-bottom:16px;}
 
@@ -371,7 +374,7 @@
 
   <!-- SEARCH (page d'accueil) -->
   <div id="viewSearch">
-    <div class="panel">
+    <div class="panel home-card">
       <div class="home-mode" id="homeModeToggle">
         <button type="button" class="active" id="homeModeSend" onclick="setHomeMode('send')"><svg class="icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Envoyer</button>
         <button type="button" id="homeModeReceive" onclick="setHomeMode('receive')"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg> Recevoir</button>
