@@ -68,7 +68,7 @@
   .bn-item .bn-badge{position:absolute;top:0;right:12px;background:var(--red);color:#fff;font-size:9.5px;font-weight:700;min-width:15px;height:15px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
 
   header{padding:calc(26px + env(safe-area-inset-top)) 20px 18px;text-align:center;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--green) 0%,var(--green-dark) 100%);}
-  header .hero-globe{position:absolute;top:38px;right:0;width:62%;max-width:280px;height:auto;pointer-events:none;-webkit-mask-image:linear-gradient(to right, transparent, #000 22%);mask-image:linear-gradient(to right, transparent, #000 22%);}
+  header .hero-globe{position:absolute;top:58px;right:-10px;width:58%;max-width:250px;height:auto;pointer-events:none;-webkit-mask-image:radial-gradient(circle at 78% 42%, #000 48%, transparent 82%);mask-image:radial-gradient(circle at 78% 42%, #000 48%, transparent 82%);}
   header .brand{position:relative;color:#F5EFDD;}
   header .brand .star{width:32px;height:32px;margin:0 auto 6px;}
   header h1{font-size:26px;color:#F5EFDD;letter-spacing:.5px;}
@@ -206,9 +206,10 @@
   .bell-btn{position:absolute;top:calc(22px + env(safe-area-inset-top));right:20px;width:38px;height:38px;border-radius:10px;border:none;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;color:#F5EFDD;}
   .bell-btn .icon{width:19px;height:19px;}
   .bell-btn .notif-badge{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
-  .home-mode{display:flex;gap:6px;margin-top:16px;position:relative;z-index:2;}
-  .home-mode button{flex:1;border:none;border-radius:999px;padding:10px 8px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:'Inter',sans-serif;background:rgba(255,255,255,.14);color:#F5EFDD;}
-  .home-mode button.active{background:#F5EFDD;color:var(--green-dark);}
+  .home-mode{display:flex;gap:8px;margin-bottom:18px;}
+  .home-mode button{flex:1;border:1.5px solid var(--line);border-radius:999px;padding:11px 8px;font-weight:700;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif;background:var(--panel);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;gap:7px;}
+  .home-mode button .icon{width:16px;height:16px;}
+  .home-mode button.active{background:var(--green);border-color:var(--green);color:#fff;}
 
   .field-label{display:flex;align-items:center;gap:6px;}
   .field-label .icon{width:15px;height:15px;color:var(--ink-soft);}
@@ -326,10 +327,6 @@
     <h1>Baraka GP</h1>
     <p>Vos colis, partout en confiance</p>
     <div class="points-bar" onclick="switchTab('points')" id="pointsBarHeader" style="display:none;">🌟 <b id="pointsHeaderVal">0</b> points Baraka</div>
-    <div class="home-mode" id="homeModeToggle">
-      <button type="button" class="active" id="homeModeSend" onclick="setHomeMode('send')">📤 Envoyer</button>
-      <button type="button" id="homeModeReceive" onclick="setHomeMode('receive')">📥 Recevoir</button>
-    </div>
   </div>
 </header>
 
@@ -375,6 +372,10 @@
   <!-- SEARCH (page d'accueil) -->
   <div id="viewSearch">
     <div class="panel">
+      <div class="home-mode" id="homeModeToggle">
+        <button type="button" class="active" id="homeModeSend" onclick="setHomeMode('send')"><svg class="icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg> Envoyer</button>
+        <button type="button" id="homeModeReceive" onclick="setHomeMode('receive')"><svg class="icon" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg> Recevoir</button>
+      </div>
       <div class="row2">
         <div><label class="field-label"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 21c-4-4.5-7-8-7-11a7 7 0 0 1 14 0c0 3-3 6.5-7 11Z"/></svg><span data-i18n="labelFrom">Ville de départ</span></label><input type="text" id="searchFrom" list="fromCities" oninput="renderResults()" placeholder="Paris"></div>
         <div><label class="field-label"><svg class="icon" viewBox="0 0 24 24"><path d="M5 3v18"/><path d="M5 4h11l-2 4 2 4H5"/></svg><span data-i18n="labelTo">Ville d'arrivée</span></label><input type="text" id="searchTo" list="toCities" oninput="autoSetCountry('searchTo','searchCountry');renderResults();" placeholder="Nouakchott"></div>
@@ -2004,8 +2005,6 @@ function switchTab(tab){
   ['Search','Send','Publish','Mytrips','Mydemandes','Orders','Points','Balance','Messages'].forEach(v=>{
     document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
   });
-  const homeModeToggle=document.getElementById('homeModeToggle');
-  if(homeModeToggle) homeModeToggle.style.display = tab==='search' ? 'flex' : 'none';
   stopPolling();
   if(tab==='search'){ renderResults(); startPolling(); }
   if(tab==='send' && me){ document.getElementById('sName').value=me.name; document.getElementById('sPhone').value=me.phone; }
