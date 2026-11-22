@@ -68,7 +68,7 @@
   .bn-item .bn-badge{position:absolute;top:0;right:12px;background:var(--red);color:#fff;font-size:9.5px;font-weight:700;min-width:15px;height:15px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
 
   header{padding:calc(26px + env(safe-area-inset-top)) 20px 18px;text-align:center;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--green) 0%,var(--green-dark) 100%);}
-  header .routes{position:absolute;inset:0;opacity:.9;pointer-events:none;}
+  header .hero-globe{position:absolute;top:38px;right:0;width:62%;max-width:280px;height:auto;pointer-events:none;-webkit-mask-image:linear-gradient(to right, transparent, #000 22%);mask-image:linear-gradient(to right, transparent, #000 22%);}
   header .brand{position:relative;color:#F5EFDD;}
   header .brand .star{width:32px;height:32px;margin:0 auto 6px;}
   header h1{font-size:26px;color:#F5EFDD;letter-spacing:.5px;}
@@ -217,7 +217,7 @@
   .btn-home-search .icon{width:17px;height:17px;stroke-width:2.3;}
 
   .promo-block{display:flex;align-items:center;gap:14px;background:var(--green-pale);border-radius:16px;padding:16px;margin:18px 0;cursor:pointer;}
-  .promo-block .promo-emoji{font-size:26px;flex-shrink:0;}
+  .promo-block .promo-emoji{width:46px;height:46px;object-fit:contain;flex-shrink:0;}
   .promo-block .promo-text{flex:1;}
   .promo-block .promo-text b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:2px;}
   .promo-block .promo-text span{font-size:12.5px;color:var(--ink-soft);}
@@ -312,30 +312,7 @@
 </div>
 
 <header>
-  <svg class="routes" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <defs>
-      <pattern id="globeDots" width="9" height="9" patternUnits="userSpaceOnUse">
-        <circle cx="2" cy="2" r="1.2" fill="#F5EFDD"/>
-      </pattern>
-      <radialGradient id="globeShade" cx="35%" cy="30%" r="75%">
-        <stop offset="0%" stop-color="#2E8A71"/>
-        <stop offset="100%" stop-color="#0B6B50"/>
-      </radialGradient>
-    </defs>
-    <g opacity=".5">
-      <circle cx="330" cy="62" r="72" fill="url(#globeShade)"/>
-      <circle cx="330" cy="62" r="72" fill="url(#globeDots)" opacity=".55"/>
-      <ellipse cx="330" cy="62" rx="72" ry="26" fill="none" stroke="#F5EFDD" stroke-width="1" opacity=".35"/>
-      <ellipse cx="330" cy="62" rx="40" ry="72" fill="none" stroke="#F5EFDD" stroke-width="1" opacity=".3"/>
-    </g>
-    <g stroke="#F5EFDD" stroke-width="2" fill="none" stroke-dasharray="1 8" stroke-linecap="round" opacity=".55">
-      <path d="M285 95 Q 200 150 70 185"/>
-    </g>
-    <circle cx="285" cy="95" r="4" fill="#F5B83D"/>
-    <g transform="translate(70,185) rotate(-25)">
-      <path d="M0 0 L12 -3 L0 3 L3 0 Z" fill="#F5EFDD"/>
-    </g>
-  </svg>
+  <img class="hero-globe" src="images/hero-globe.png" alt="" aria-hidden="true">
   <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
     <span></span><span></span><span></span>
   </button>
@@ -430,7 +407,7 @@
     </div>
 
     <div class="promo-block" onclick="switchTab('points')">
-      <span class="promo-emoji">🎁</span>
+      <img class="promo-emoji" src="images/gift-box.png" alt="">
       <div class="promo-text"><b>Profitez de nos offres spéciales !</b><span>Voyagez plus, dépensez moins.</span></div>
       <span class="promo-arrow"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
     </div>

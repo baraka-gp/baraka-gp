@@ -5,7 +5,7 @@
   "main": "firebase-messaging-sw.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:www": "mkdir -p www/icons && cp index.html manifest.json firebase-messaging-sw.js cgu.html confidentialite.html mentions-legales.html www/ && cp icons/*.png www/icons/",
+    "build:www": "mkdir -p www/icons www/images && cp index.html manifest.json firebase-messaging-sw.js cgu.html confidentialite.html mentions-legales.html www/ && cp icons/*.png www/icons/ && cp images/*.png www/images/",
     "ios:sync": "npm run build:www && npx cap sync ios"
   },
   "repository": {
