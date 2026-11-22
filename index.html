@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,600&family=Poppins:wght@600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
 // Applique le thème choisi avant l'affichage, pour éviter un flash clair puis sombre
 (function(){
@@ -58,7 +58,10 @@
   [dir="rtl"] body{text-align:right;}
   [dir="rtl"] .wizard-back{transform:scaleX(-1);}
   [dir="rtl"] .password-toggle{right:auto;left:2px;}
-  h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
+  h1,h2,h3{margin:0;}
+  h1{font-family:'Playfair Display',serif;font-weight:700;}
+  h2,h3{font-family:'Poppins',sans-serif;font-weight:600;}
+  .accent-word{font-family:'Playfair Display',serif;font-style:italic;font-weight:600;color:var(--gold);}
   .wrap{max-width:720px;margin:0 auto;padding:20px 20px calc(84px + env(safe-area-inset-bottom));}
 
   .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -2px 10px rgba(30,111,92,.08);padding:5px 4px calc(5px + env(safe-area-inset-bottom));}
@@ -91,7 +94,7 @@
   .drawer-overlay.show{display:block;}
   .drawer-panel{position:fixed;top:0;left:0;bottom:0;width:78%;max-width:320px;background:var(--panel);z-index:71;transform:translateX(-100%);transition:transform .28s ease;box-shadow:8px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column;padding:10px 0;overflow-y:auto;}
   .drawer-panel.show{transform:translateX(0);}
-  .drawer-head{display:flex;justify-content:space-between;align-items:center;padding:calc(14px + env(safe-area-inset-top)) 20px 10px;font-family:'Fraunces',serif;font-size:16px;color:var(--ink);border-bottom:1px solid var(--line);margin-bottom:6px;}
+  .drawer-head{display:flex;justify-content:space-between;align-items:center;padding:calc(14px + env(safe-area-inset-top)) 20px 10px;font-family:'Poppins',sans-serif;font-size:16px;color:var(--ink);border-bottom:1px solid var(--line);margin-bottom:6px;}
   .drawer-head .avatar{width:34px;height:34px;font-size:15px;}
   .drawer-close{background:none;border:none;font-size:18px;color:var(--ink-soft);cursor:pointer;}
   .icon{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle;flex-shrink:0;}
@@ -142,16 +145,16 @@
 
   .gp-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:12px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
   .gp-card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
-  .route{font-family:'Fraunces',serif;font-size:16.5px;font-weight:600;color:var(--accent);}
+  .route{font-family:'Playfair Display',serif;font-style:italic;font-size:16.5px;font-weight:600;color:var(--accent);}
   .route .dots{color:var(--gold);margin:0 5px;font-weight:400;}
   .price{background:var(--gold-soft);color:var(--gold-soft-ink);font-weight:700;font-size:13px;padding:5px 10px;border-radius:999px;white-space:nowrap;}
   .meta{margin-top:7px;font-size:13px;color:var(--ink-soft);display:flex;gap:12px;flex-wrap:wrap;}
   .meta b{color:var(--ink);}
   .stars{color:var(--gold);font-size:13px;}
   .avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;}
-  .avatar-placeholder{background:var(--green-pale);color:var(--green-pale-ink);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;font-size:17px;}
+  .avatar-placeholder{background:var(--green-pale);color:var(--green-pale-ink);display:flex;align-items:center;justify-content:center;font-family:'Poppins',sans-serif;font-weight:700;font-size:17px;}
 
-  .order-section-title{font-family:'Fraunces',serif;font-size:15px;color:var(--accent);margin:22px 0 4px;padding-top:14px;border-top:1px solid var(--line);}
+  .order-section-title{font-family:'Poppins',sans-serif;font-size:15px;color:var(--accent);margin:22px 0 4px;padding-top:14px;border-top:1px solid var(--line);}
   .order-section-title:first-of-type{border-top:none;margin-top:0;padding-top:0;}
   .toggle-row{display:flex;gap:8px;}
   .toggle-opt{flex:1;text-align:center;padding:11px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
@@ -162,7 +165,7 @@
 
   .empty{text-align:center;padding:34px 20px;color:var(--ink-soft);}
   .empty .star{width:28px;height:28px;margin:0 auto 10px;opacity:.5;}
-  .empty b{color:var(--ink);display:block;margin-bottom:4px;font-family:'Fraunces',serif;font-size:16px;}
+  .empty b{color:var(--ink);display:block;margin-bottom:4px;font-family:'Poppins',sans-serif;font-size:16px;}
   .search-spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--green);border-radius:50%;margin:0 auto;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
@@ -179,7 +182,7 @@
   .modal .star{width:28px;height:28px;margin:0 auto 8px;}
   .modal h3{font-size:18px;margin-bottom:6px;}
   .modal p{color:var(--ink-soft);font-size:13.5px;line-height:1.5;margin:0 0 14px;}
-  .modal .price-big{font-family:'Fraunces',serif;font-size:24px;color:var(--accent);margin-bottom:2px;}
+  .modal .price-big{font-family:'Poppins',sans-serif;font-size:24px;color:var(--accent);margin-bottom:2px;}
   .modal .price-note{font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
 
   #authSignupWizard, #payoutSetupGate{position:fixed;inset:0;background:var(--panel);z-index:51;display:flex;flex-direction:column;padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));overflow-y:auto;text-align:left;}
@@ -191,7 +194,7 @@
   .wizard-icon{width:52px;height:52px;border-radius:14px;background:var(--green-pale);color:var(--green-pale-ink);display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
   .wizard-icon .icon{width:24px;height:24px;}
   .wizard-progress{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-  .wizard-title{font-family:'Fraunces',serif;font-size:24px;color:var(--ink);line-height:1.25;margin-bottom:8px;}
+  .wizard-title{font-family:'Poppins',sans-serif;font-size:24px;color:var(--ink);line-height:1.25;margin-bottom:8px;}
   .wizard-desc{color:var(--ink-soft);font-size:13.5px;line-height:1.5;margin:0 0 18px;}
   .wizard-step{display:none;}
   .wizard-step.active{display:block;}
@@ -249,7 +252,7 @@
   .profile-status{margin-top:14px;padding:12px 15px;border-radius:12px;font-size:13px;}
   .profile-status.verified{background:var(--green-pale);color:var(--green-pale-ink);}
   .profile-status.pending{background:var(--gold-soft);color:var(--gold-soft-ink);}
-  .profile-status b{display:block;font-family:'Fraunces',serif;font-size:14.5px;margin-bottom:2px;}
+  .profile-status b{display:block;font-family:'Poppins',sans-serif;font-size:14.5px;margin-bottom:2px;}
 
   .msg-icon{width:34px;height:34px;border-radius:999px;border:none;background:var(--green);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 
@@ -328,7 +331,7 @@
   <div class="brand">
     <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#F5B83D"/></svg>
     <h1>Baraka GP</h1>
-    <p>Vos colis, partout en confiance</p>
+    <p>Vos colis, partout en <span class="accent-word" style="text-transform:none;">confiance</span></p>
     <div class="points-bar" onclick="switchTab('points')" id="pointsBarHeader" style="display:none;">🌟 <b id="pointsHeaderVal">0</b> points Baraka</div>
   </div>
 </header>
@@ -1853,7 +1856,7 @@ function renderPointsPanel(){
     <h2 style="display:flex;align-items:center;gap:9px;"><svg class="icon" viewBox="0 0 24 24" style="width:22px;height:22px;"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z"/></svg>${t('ptsTitle','Vos points Baraka')}</h2>
     <div class="sub">${t('ptsSubtitle','Gagnez des points à chaque commande complétée, échangez-les contre des remises.')}</div>
     <div style="text-align:center;padding:10px 0;">
-      <div style="font-family:'Fraunces',serif;font-size:38px;color:var(--accent);">${p}</div>
+      <div style="font-family:'Poppins',sans-serif;font-size:38px;color:var(--accent);">${p}</div>
       <div style="color:var(--ink-soft);font-size:13px;">${t('ptsCurrentPoints','points actuels')}</div>
     </div>
     <div class="points-progress"><div style="width:${(p%50)/50*100}%;"></div></div>
@@ -1862,7 +1865,7 @@ function renderPointsPanel(){
     <div class="ref-box" style="background:var(--green-pale);margin-top:14px;">
       <b style="color:var(--green-pale-ink);">🏷️ ${t('ptsIdTitle','Votre identifiant Baraka GP')}</b>
       <div style="font-size:13px;color:var(--green-pale-ink);margin-top:4px;">${t('ptsIdDesc',"À écrire sur vos colis (avec les prénoms), à la place de votre numéro de téléphone.")}</div>
-      <div style="font-family:'Fraunces',serif;font-size:26px;color:var(--green-pale-ink);text-align:center;letter-spacing:3px;margin:8px 0 0;">${points[key].refCode.toUpperCase()}</div>
+      <div style="font-family:'Poppins',sans-serif;font-size:26px;color:var(--green-pale-ink);text-align:center;letter-spacing:3px;margin:8px 0 0;">${points[key].refCode.toUpperCase()}</div>
     </div>
     <div class="ref-box">
       <b>🎁 ${t('ptsReferTitle','Parrainez vos proches')}</b>
@@ -1921,7 +1924,7 @@ function renderBalancePanel(){
       : `<div class="hint" style="margin-top:6px;">${ICON_WARN}${t('balPayoutNotConfigured','Configurez votre compte pour recevoir vos versements.')}</div>
          <button class="btn gold sm" onclick="openPayoutSetupGate()">🏦 ${t('btnConfigurePayout','Configurer mon compte de paiement')}</button>`;
     html += `
-    <h3 style="margin-top:20px;font-family:'Fraunces',serif;">✈️ ${t('balAsTraveler','En tant que voyageur')}</h3>
+    <h3 style="margin-top:20px;font-family:'Poppins',sans-serif;">✈️ ${t('balAsTraveler','En tant que voyageur')}</h3>
     ${payoutStatus}`;
     if(gpOrders.length>0){
       html += `
@@ -1937,7 +1940,7 @@ function renderBalancePanel(){
 
   if(clientOrders.length>0){
     html += `
-    <h3 style="margin-top:20px;font-family:'Fraunces',serif;">📦 ${t('balAsClient','En tant que client')}</h3>
+    <h3 style="margin-top:20px;font-family:'Poppins',sans-serif;">📦 ${t('balAsClient','En tant que client')}</h3>
     <div class="price-recap" style="background:var(--gold-soft);">
       <div class="price-recap-row" style="color:var(--gold-soft-ink);"><span>💳 ${t('balPaid','Payé')}</span><b>${clientPaidTotal.toFixed(2)}€</b></div>
       ${orderList(clientPaid,'priceTotal')}
@@ -2303,11 +2306,11 @@ function showProfileDetail(phone){
     </div>
     <div style="display:flex;justify-content:space-around;text-align:center;margin-top:18px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
       <div>
-        <div style="font-family:'Fraunces',serif;font-size:22px;color:var(--accent);">${avg!==null ? avg.toFixed(1) : '—'}</div>
+        <div style="font-family:'Poppins',sans-serif;font-size:22px;color:var(--accent);">${avg!==null ? avg.toFixed(1) : '—'}</div>
         <div style="font-size:11.5px;color:var(--ink-soft);">${profile.ratingCount||0} avis</div>
       </div>
       <div>
-        <div style="font-family:'Fraunces',serif;font-size:22px;color:var(--accent);">${tripsCount}</div>
+        <div style="font-family:'Poppins',sans-serif;font-size:22px;color:var(--accent);">${tripsCount}</div>
         <div style="font-size:11.5px;color:var(--ink-soft);">trajet${tripsCount>1?'s':''} terminé${tripsCount>1?'s':''}</div>
       </div>
     </div>
@@ -3057,7 +3060,7 @@ function showPickupCode(orderId){
   document.getElementById('codeModalTitle').textContent="Votre code d'identité";
   document.getElementById('codeModalText').textContent="Donnez ce code au client au moment où il vous remet le colis, pour confirmer votre identité.";
   document.getElementById('codeModalContent').innerHTML = `
-    <div style="font-family:'Fraunces',serif;font-size:28px;letter-spacing:6px;color:var(--accent);text-align:center;background:var(--bg);border-radius:10px;padding:10px;margin-top:6px;">${o.pickupCode}</div>
+    <div style="font-family:'Poppins',sans-serif;font-size:28px;letter-spacing:6px;color:var(--accent);text-align:center;background:var(--bg);border-radius:10px;padding:10px;margin-top:6px;">${o.pickupCode}</div>
     <button class="btn" onclick="document.getElementById('codeOverlay').classList.remove('show')">Fermer</button>
   `;
   document.getElementById('codeOverlay').classList.add('show');
@@ -3550,7 +3553,7 @@ function renderReceiveContent(orderId, order, refCode){
   }else{
     statusHtml=`
       <div class="sub" style="text-align:center;">${order.recipientName?`Bonjour ${esc(order.recipientName)},<br>`:''}voici votre code de réception pour le colis (${esc(order.from)} → ${esc(order.to)}). Donnez-le au voyageur au moment où il vous remet le colis, pour confirmer que vous l'avez bien reçu.</div>
-      <div style="font-family:'Fraunces',serif;font-size:36px;letter-spacing:8px;color:var(--accent);text-align:center;margin:14px 0;">${order.deliveryCode}</div>
+      <div style="font-family:'Poppins',sans-serif;font-size:36px;letter-spacing:8px;color:var(--accent);text-align:center;margin:14px 0;">${order.deliveryCode}</div>
       <div class="hint" style="text-align:center;">Vous pouvez aussi confirmer vous-même ici, une fois le colis en main :</div>
       <button class="btn gold" onclick="confirmReceiveDelivery('${orderId}')">J'ai bien reçu le colis</button>
     `;
