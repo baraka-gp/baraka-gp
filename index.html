@@ -27,7 +27,7 @@
 <style>
   :root{
     --bg:#F7F3EA; --panel:#FFFFFF; --ink:#24332D; --ink-soft:#5B6660;
-    --green:#064E3B; --green-dark:#0B6B50; --green-pale:#E7F0EC; --accent:#0B6B50;
+    --green:#064E3B; --green-dark:#0B6B50; --green-pale:#E7F0EC; --green-pale-2:#D8ECE2; --accent:#0B6B50;
     --gold:#F5B83D; --gold-soft:#F3E6C8; --line:#E6DFCC; --radius:14px;
     --red:#B4453E; --red-soft:#F3E1DF; --input-bg:#FCFAF5;
     --green-pale-ink:#0B6B50; --gold-soft-ink:#8A611D; --red-soft-ink:#B4453E;
@@ -38,7 +38,7 @@
     :root:not([data-theme="light"]){
       --bg:#121A16; --panel:#1C2620; --ink:#EDEFEC; --ink-soft:#9BA69E;
       --line:#33403A; --input-bg:#212B25; color-scheme:dark;
-      --accent:#A6E8CE; --green-pale:#20443A; --green-pale-ink:#A6E8CE;
+      --accent:#A6E8CE; --green-pale:#20443A; --green-pale-2:#16261F; --green-pale-ink:#A6E8CE;
       --gold-soft:#43350F; --gold-soft-ink:#F2D08C;
       --red-soft:#452420; --red-soft-ink:#F0A69D;
       --blue-soft:#283258; --blue-soft-ink:#C0CDF0;
@@ -46,7 +46,7 @@
   }
   :root[data-theme="dark"]{
     --bg:#121A16; --panel:#1C2620; --ink:#EDEFEC; --ink-soft:#9BA69E;
-    --accent:#A6E8CE; --green-pale:#20443A; --green-pale-ink:#A6E8CE;
+    --accent:#A6E8CE; --green-pale:#20443A; --green-pale-2:#16261F; --green-pale-ink:#A6E8CE;
     --gold-soft:#43350F; --gold-soft-ink:#F2D08C;
     --red-soft:#452420; --red-soft-ink:#F0A69D;
     --blue-soft:#283258; --blue-soft-ink:#C0CDF0;
@@ -227,7 +227,7 @@
   .btn-home-search:hover{filter:brightness(1.04);}
   .btn-home-search .icon{width:17px;height:17px;stroke-width:2.3;}
 
-  .promo-block{display:flex;align-items:center;gap:14px;background:linear-gradient(160deg,var(--green-pale) 0%,#D8ECE2 100%);border-radius:16px;padding:16px;margin:18px 0;cursor:pointer;box-shadow:0 4px 14px rgba(6,78,59,.1);}
+  .promo-block{display:flex;align-items:center;gap:14px;background:linear-gradient(160deg,var(--green-pale) 0%,var(--green-pale-2) 100%);border-radius:16px;padding:16px;margin:18px 0;cursor:pointer;box-shadow:0 4px 14px rgba(6,78,59,.1);}
   .promo-block .promo-emoji{width:46px;height:46px;object-fit:contain;flex-shrink:0;}
   .promo-block .promo-text{flex:1;}
   .promo-block .promo-text b{display:block;font-size:14.5px;color:var(--ink);margin-bottom:2px;}
