@@ -3034,6 +3034,14 @@ async function submitPayment(){
 async function setupPayoutAccount(){
   if(!me) return;
   showToast("Préparation de la configuration...");
+  // Force un jeton d'authentification frais avant cet appel précis : un
+  // jeton périmé/pas encore prêt ne provoque pas toujours l'erreur claire
+  // "functions/unauthenticated" attendue — parfois l'appel échoue plus tôt,
+  // sans jamais atteindre nos Cloud Functions (confirmé via les logs
+  // serveur, vides), avec un message générique du SDK ("Not a valid URL").
+  if(auth.currentUser){
+    try{ await auth.currentUser.getIdToken(true); }catch(e){}
+  }
   let result;
   try{
     const origin=location.href.replace(/index\.html.*$/, '').replace(/\/$/, '');
