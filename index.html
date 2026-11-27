@@ -3034,12 +3034,24 @@ async function submitPayment(){
 async function setupPayoutAccount(){
   if(!me) return;
   showToast("Préparation de la configuration...");
+  let result;
   try{
     const origin=location.href.replace(/index\.html.*$/, '').replace(/\/$/, '');
-    const result=await callCloudFn('createConnectOnboardingLink', {phone: me.phone, name: me.name, email: me.email, phoneE164: me.phoneE164, origin});
-    location.href=result.data.url;
+    result=await callCloudFn('createConnectOnboardingLink', {phone: me.phone, name: me.name, email: me.email, phoneE164: me.phoneE164, origin});
   }catch(e){
-    showToast("Impossible d'ouvrir la configuration : "+((e&&(e.message||e.code))||'erreur inconnue'));
+    showToast("Impossible d'ouvrir la configuration (appel serveur) : "+((e&&(e.message||e.code))||'erreur inconnue'));
+    return;
+  }
+  // Séparé du bloc ci-dessus : si l'appel serveur a bien réussi mais que
+  // location.href=... échoue (ex. URL vide/invalide), le diagnostic doit
+  // pointer vers la navigation, pas vers l'appel serveur lui-même — sinon
+  // impossible de savoir lequel des deux a vraiment échoué.
+  const url=result && result.data && result.data.url;
+  if(!url){ showToast("Impossible d'ouvrir la configuration : réponse serveur invalide (pas d'URL)"); return; }
+  try{
+    location.href=url;
+  }catch(e){
+    showToast("Impossible d'ouvrir la configuration (navigation) : "+((e&&(e.message||e.code))||'erreur inconnue'));
   }
 }
 async function confirmPickup(orderId){
