@@ -1,0 +1,8 @@
+{
+  "appId": "com.barakagp.app",
+  "appName": "Baraka GP",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

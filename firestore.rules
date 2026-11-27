@@ -1,0 +1,158 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Un utilisateur normal doit avoir un compte (créé via l'inscription de
+    // index.html) pour lire ou écrire quoi que ce soit.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Un admin est soit le compte propriétaire (UID codé ici en dur, pour ne
+    // plus dépendre d'un document créé à la main dans la console Firebase —
+    // trop d'erreurs possibles via l'interface mobile), soit un utilisateur
+    // listé dans la collection "admins" (un document par UID) si on veut en
+    // ajouter d'autres plus tard.
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.uid == 'pn4WsdLN1gWrwIwMewMPumiRstj1' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Numéro de téléphone (nettoyé) de la personne connectée, d'après son
+    // propre document "accounts" — null pour un compte anonyme (ex. le lien
+    // de confirmation de réception, qui n'a pas de compte "accounts").
+    function myPhone() {
+      return isSignedIn() && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.phoneClean
+        : null;
+    }
+
+    // Comptes utilisateurs (créés à l'inscription dans index.html). Chacun ne
+    // peut lire/modifier que le sien.
+    match /accounts/{uid} {
+      allow read, create, update: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if isAdmin();
+    }
+
+    // Liste des admins : jamais modifiable depuis le client, uniquement à la
+    // main dans la console Firebase (Firestore > admins > [UID de l'admin]).
+    match /admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Annonces (voyageurs "GP" et demandes de colis) : visibles, publiables,
+    // modifiables et supprimables par tout utilisateur connecté (l'app ne
+    // limite l'affichage des boutons modifier/supprimer qu'aux annonces de son
+    // propre numéro, sans le faire respecter côté règles — même limite que le
+    // reste de l'app, voir la section "Limite connue" du README). Seul
+    // l'admin peut en plus vérifier une annonce (champ "verified").
+    match /listings/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin()
+        || (isSignedIn() && !('verified' in request.resource.data.diff(resource.data).affectedKeys()));
+      allow delete: if isSignedIn();
+    }
+
+    // Profils voyageurs (identité, billet). Lecture volontairement ouverte à
+    // tout compte connecté (recherche, profils publics affichés à tous).
+    // Écriture restreinte à son propre profil : la moyenne/nombre d'avis, le
+    // nombre de trajets terminés et les commentaires publics ne sont plus
+    // écrits par le navigateur de qui note/complète une commande, mais par
+    // les Cloud Functions applyOrderRating et awardCompletionTripCount
+    // (Admin SDK, donc pas soumises à ces règles). Seul l'admin peut en plus
+    // vérifier un profil (champ "verified").
+    match /profiles/{phone} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && myPhone() == phone;
+      allow update: if isAdmin()
+        || (isSignedIn() && myPhone() == phone && !('verified' in request.resource.data.diff(resource.data).affectedKeys()));
+      allow delete: if isAdmin();
+    }
+
+    // Pièce d'identité (photo), séparée du reste du profil : contrairement
+    // au nom/avatar/note, elle n'a aucune raison d'être lue par un autre
+    // utilisateur que l'admin — seule la vérification d'identité en a
+    // besoin. Écriture restreinte à son propre numéro (créée depuis le
+    // navigateur de son propriétaire au moment de la publication d'un trajet).
+    match /profilesPrivate/{phone} {
+      allow read: if isAdmin();
+      allow create, update: if isSignedIn() && myPhone() == phone;
+      allow delete: if isAdmin();
+    }
+
+    // Alertes "prévenez-moi".
+    match /alerts/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    // Commandes : le workflow (accepter/payer/récupérer/livrer) est piloté par
+    // le client et le voyageur eux-mêmes. Lecture par id (get) ouverte à tout
+    // compte connecté — y compris anonyme — pour le lien de confirmation de
+    // réception (le destinataire n'a pas de compte "accounts" ; l'id de la
+    // commande dans le lien fait déjà office de "clé", comme documenté dans
+    // le README). En revanche, lister/interroger la collection (ex. la
+    // recherche de l'app par clientPhone/gpPhone) ne renvoie que les
+    // commandes dont on est l'une des deux parties.
+    match /orders/{id} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && (resource.data.clientPhone == myPhone() || resource.data.gpPhone == myPhone());
+      allow create: if isSignedIn() && (request.resource.data.clientPhone == myPhone() || request.resource.data.gpPhone == myPhone());
+      allow update: if isSignedIn() && (
+        resource.data.clientPhone == myPhone() || resource.data.gpPhone == myPhone() ||
+        // Le destinataire (lien de confirmation, compte anonyme) peut
+        // uniquement faire passer une commande de "livrée" à "terminée" —
+        // jamais toucher au prix, au lieu de RDV ou à autre chose.
+        (resource.data.status == 'delivered' && request.resource.data.status == 'completed'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Messagerie support : chacun ne lit/écrit que son propre fil (identifié
+    // par son numéro) ; l'admin (admin.html) garde accès à tous les fils.
+    match /messages/{phone} {
+      allow read, write: if isAdmin() || (isSignedIn() && myPhone() == phone);
+    }
+    // Le fil "...{orderId}_recipient" reste accessible à qui a le lien de
+    // confirmation (compte anonyme, pas de numéro) — même niveau de sécurité
+    // que l'id de commande lui-même (voir README). Le fil client/voyageur
+    // ("{orderId}") est, lui, restreint aux deux participants de la commande.
+    match /orderMsgs/{msgId} {
+      function linkedOrderId() { return msgId.split('_recipient')[0]; }
+      function isRecipientThread() { return msgId != linkedOrderId(); }
+      function linkedOrder() { return get(/databases/$(database)/documents/orders/$(linkedOrderId())).data; }
+      allow read, write: if isSignedIn() && (
+        isRecipientThread() ||
+        linkedOrder().clientPhone == myPhone() || linkedOrder().gpPhone == myPhone()
+      );
+    }
+
+    // Points de fidélité. Lecture par id (get) ouverte à tout compte connecté
+    // — y compris anonyme — pour que le lien de confirmation de réception
+    // puisse afficher l'identifiant Baraka GP de l'expéditeur (déjà censé
+    // être écrit, en clair, sur le colis — pas une donnée secrète). Écriture
+    // restreinte à son propre solde : le crédit de points croisé (parrainage,
+    // commande terminée) est fait côté serveur par la Cloud Function
+    // awardCompletionPoints (Admin SDK, donc pas soumise à ces règles).
+    match /points/{phone} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow write: if isAdmin() || (isSignedIn() && myPhone() == phone);
+    }
+
+    // Numéros bloqués par l'admin. Lecture ouverte à tout compte connecté
+    // (nécessaire pour vérifier son propre numéro à l'inscription/connexion),
+    // écriture réservée à l'admin.
+    match /blockedPhones/{phone} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
