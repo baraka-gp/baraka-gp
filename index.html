@@ -1920,7 +1920,7 @@ function renderBalancePanel(){
     const payoutStatus=myProfile.stripeOnboarded
       ? `<div class="hint" style="margin-top:6px;color:var(--accent);">${ICON_CHECK}${t('balPayoutConfigured','Compte de paiement configuré, vous pouvez recevoir vos versements.')}</div>`
       : `<div class="hint" style="margin-top:6px;">${ICON_WARN}${t('balPayoutNotConfigured','Configurez votre compte pour recevoir vos versements.')}</div>
-         <button class="btn gold sm" onclick="openPayoutSetupGate()">🏦 ${t('btnConfigurePayout','Configurer mon compte de paiement')}</button>`;
+         <button class="btn gold sm" onclick="setupPayoutAccount()">🏦 ${t('btnConfigurePayout','Configurer mon compte de paiement')}</button>`;
     html += `
     <h3 style="margin-top:20px;font-family:'Poppins',sans-serif;">✈️ ${t('balAsTraveler','En tant que voyageur')}</h3>
     ${payoutStatus}`;
